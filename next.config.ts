@@ -10,10 +10,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
   },
-  // Allow build to succeed even with ESLint warnings/errors
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Allow build to succeed even with TypeScript errors
   typescript: {
     ignoreBuildErrors: true,
