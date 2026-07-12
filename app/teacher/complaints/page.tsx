@@ -230,10 +230,19 @@ export default function ComplaintsPage() {
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedComplaints = filteredComplaints.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
+  // Reset page AND filters when view mode changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchTerm('');
+    setStatusFilter('All');
+    setPriorityFilter('All');
+    setRoleFilter('All');
+  }, [viewMode]);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, roleFilter, viewMode]);
+  }, [searchTerm, statusFilter, priorityFilter, roleFilter]);
 
   // Handle boundary if items are removed from current page
   useEffect(() => {

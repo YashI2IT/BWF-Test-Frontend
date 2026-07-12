@@ -142,6 +142,7 @@ export default function TeacherStudentsPage() {
     if (!scheduleForm.title.trim()) return showMessage("Session title is required", "error")
     if (!scheduleForm.sessionType.trim()) return showMessage("Session type is required", "error")
     if (!scheduleForm.date) return showMessage("Date is required", "error")
+    if (!scheduleForm.startTime) return showMessage("Start time is required", "error")
 
     try {
       setIsSaving(true)
@@ -565,6 +566,15 @@ export default function TeacherStudentsPage() {
                               />
                             </PopoverContent>
                           </Popover>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Start Time</label>
+                          <Input
+                            type="time"
+                            value={scheduleForm.startTime}
+                            onChange={e => setScheduleForm({ ...scheduleForm, startTime: e.target.value })}
+                            className="h-[42px] rounded-[16px] border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 shadow-sm px-4"
+                          />
                         </div>
                         <Button className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-[15px] shadow-sm transition-all mt-2" onClick={handleSchedulePush} disabled={isSaving}>
                           <Send className="w-4 h-4 mr-2" /> Push Session
