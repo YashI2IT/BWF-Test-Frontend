@@ -1,0 +1,834 @@
+/* =========================================
+   BWF DASHBOARD STYLES — PREMIUM EDITION
+   Trauma-Aware · Warm · Joyful · Refined
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+/* --- 1. MAIN CONTAINER --- */
+.main-content {
+  padding: 2.5rem 3.5rem 4rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --- 2. TOP HEADER --- */
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 36px;
+}
+
+.top-header h1 {
+  font-size: 1.95rem;
+  font-weight: 900;
+  color: #0a0f1e;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Premium Bell Button */
+.dash-bell-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1.5px solid #e8edf5;
+  background: #ffffff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.dash-bell-btn:hover {
+  background: #f8fafc;
+  color: var(--brand-blue);
+  border-color: #bfdbfe;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.12);
+}
+
+.dash-bell-btn--alert {
+  background: linear-gradient(145deg, #fff7ed, #ffedd5);
+  border-color: #fed7aa;
+  color: #ea580c;
+  animation: dashBellWiggle 4s ease infinite;
+  box-shadow: 0 4px 16px rgba(234, 88, 12, 0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+@keyframes dashBellWiggle {
+  0%,80%,100% { transform: rotate(0); }
+  83%  { transform: rotate(-13deg); }
+  86%  { transform: rotate(13deg); }
+  89%  { transform: rotate(-8deg); }
+  92%  { transform: rotate(8deg); }
+  95%  { transform: rotate(0); }
+}
+
+.dash-bell-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 900;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.35);
+  letter-spacing: 0;
+}
+
+/* Premium Avatar Button */
+.dash-avatar-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3), 0 4px 12px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.dash-avatar-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0,0,0,0.18);
+}
+
+.dash-avatar-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.prof-av {
+  width:100px; height:100px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.4);
+  background: white;
+  box-shadow:0 0 0 6px rgba(255,255,255,0.3), 0 8px 26px rgba(0,0,0,0.13);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.prof-av:hover { transform:scale(1.05) rotate(-2deg); box-shadow:0 0 0 8px rgba(255,255,255,0.4), 0 12px 32px rgba(0,0,0,0.18); }
+
+.prof-av-emoji { font-size:2.8rem; line-height:1; position:relative; z-index:1; }
+
+.prof-av-image {
+  object-fit: cover;
+  border-radius: 50%;
+  padding: 4px;
+}
+
+/* --- 3. WELCOME BANNER & MOOD TRACKER --- */
+.welcome-banner {
+  background: linear-gradient(118deg, #e0f2fe 0%, #dbeafe 30%, #ede9fe 60%, #fce7f3 100%);
+  border-radius: 28px;
+  padding: 38px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 20px 60px rgba(99, 102, 241, 0.08),
+    0 4px 16px rgba(59, 130, 246, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative orbs */
+.welcome-banner::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -50px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: 10%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(219, 39, 119, 0.06) 0%, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-text h2 {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #0a0f1e;
+  margin-bottom: 8px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.welcome-text p {
+  color: #4e5d78;
+  font-size: 0.97rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mood-tracker {
+  display: flex;
+  gap: 12px;
+  z-index: 1;
+}
+
+.mood-btn {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 16px 22px;
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: 'Nunito', sans-serif;
+}
+
+.mood-btn:hover {
+  transform: translateY(-7px) scale(1.03);
+  background: #ffffff;
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255,255,255,1);
+  border-color: rgba(255,255,255,1);
+}
+
+.mood-btn .emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mood-btn:hover .emoji { transform: scale(1.15); }
+
+.mood-btn .label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: 0.01em;
+}
+
+/* --- 4. DASHBOARD GRID & CARDS --- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  border: 1.5px solid #f0f4fb;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 4px 24px rgba(15, 23, 42, 0.04),
+    0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 20px 48px rgba(15, 23, 42, 0.08),
+    0 4px 10px rgba(15, 23, 42, 0.03);
+  border-color: #e2e8f0;
+}
+
+.card h3 {
+  margin-bottom: 24px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #0a0f1e;
+  letter-spacing: -0.02em;
+}
+
+/* --- 5. SCHEDULE / TIMELINE --- */
+.schedule-list {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 24px;
+  border-left: 2px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+.schedule-item {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+/* Glowing timeline dots */
+.schedule-item::before {
+  content: '';
+  position: absolute;
+  left: -31px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--brand-blue);
+  box-shadow: 0 0 0 4px #ffffff, 0 3px 10px rgba(59, 130, 246, 0.35);
+  z-index: 1;
+  transition: box-shadow 0.25s ease;
+}
+
+.schedule-item:hover::before {
+  box-shadow: 0 0 0 4px #eff6ff, 0 4px 14px rgba(59, 130, 246, 0.5);
+}
+
+.schedule-item:last-child { margin-bottom: 0; }
+
+.schedule-item .time {
+  min-width: 76px;
+  color: #64748b;
+  font-size: 0.83rem;
+  font-weight: 700;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+.schedule-item .details h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+/* --- 6. ASSIGNMENTS --- */
+.assignment-item {
+  padding: 16px 20px;
+  background: #fafbfe;
+  border: 2px solid #cbd5e1; /* Harsher border */
+  border-radius: 12px; /* Slightly sharper */
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  margin-bottom: 12px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.assignment-item:hover {
+  background: #ffffff;
+  border-color: #c7d7f0;
+  transform: translateX(5px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.07);
+}
+
+.assignment-item:last-child { margin-bottom: 0; }
+
+.assignment-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.assignment-header h4 {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.due-date {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 8px; /* Better spacing from title */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-urgent {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px #fee2e2;
+}
+
+.dot-normal {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px #d1fae5;
+}
+
+/* --- 7. QUICK RESOURCES --- */
+.resource-buttons { display: flex; flex-direction: column; gap: 11px; }
+
+.resource-btn {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.01em;
+  border-width: 1.5px;
+}
+
+.resource-btn:hover {
+  transform: translateX(7px) scale(1.005);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+}
+
+.bg-library {
+  background: linear-gradient(130deg, #f5f0ff, #ede9fe);
+  color: #5b21b6;
+  border-color: #ddd6fe;
+}
+
+.bg-library:hover {
+  background: linear-gradient(130deg, #ede9fe, #ddd6fe);
+  box-shadow: 0 8px 28px rgba(109, 40, 217, 0.12);
+}
+
+.bg-syllabus {
+  background: linear-gradient(130deg, #f0fdf6, #dcfce7);
+  color: #065f46;
+  border-color: #bbf7d0;
+}
+
+.bg-syllabus:hover {
+  background: linear-gradient(130deg, #dcfce7, #bbf7d0);
+  box-shadow: 0 8px 28px rgba(16, 185, 129, 0.12);
+}
+
+.bg-mentor {
+  background: linear-gradient(130deg, #fff0f7, #fce7f3);
+  color: #9d174d;
+  border-color: #fbcfe8;
+}
+
+.bg-mentor:hover {
+  background: linear-gradient(130deg, #fce7f3, #fbcfe8);
+  box-shadow: 0 8px 28px rgba(219, 39, 119, 0.12);
+}
+
+/* --- 8. BOTTOM SECTION --- */
+.connection-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+/* Mentor Note Card */
+.mentor-note-card {
+  background: linear-gradient(145deg, #fff8fc 0%, #fce7f3 100%);
+  border: 1.5px solid #f9d0e6;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 8px 36px rgba(219, 39, 119, 0.07);
+}
+
+.mentor-note-card:hover {
+  border-color: #f9a8d4;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 20px 48px rgba(219, 39, 119, 0.1);
+}
+
+.mentor-info { display: flex; align-items: center; gap: 14px; }
+
+.mentor-avatar {
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(219, 39, 119, 0.22), 0 0 0 2.5px #ffffff;
+}
+
+.mentor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.mentor-note-card .card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #6b0f37;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.mentor-role-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #db2777;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.date-badge {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(8px);
+  color: #be185d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(219, 39, 119, 0.1);
+  border: 1px solid rgba(249, 168, 212, 0.4);
+  letter-spacing: 0.02em;
+}
+
+.mentor-message {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 20px 22px;
+  border-radius: 18px 18px 18px 6px;
+  color: #6b0f37;
+  font-size: 0.93rem;
+  line-height: 1.75;
+  margin-bottom: 20px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 16px rgba(219, 39, 119, 0.04);
+}
+
+.mentor-actions { display: flex; gap: 10px; }
+
+.btn-react, .btn-reply {
+  background: rgba(255,255,255,0.85);
+  border: 1.5px solid #fbcfe8;
+  padding: 9px 20px;
+  border-radius: 24px;
+  cursor: pointer;
+  color: #db2777;
+  font-weight: 800;
+  font-size: 0.83rem;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(219, 39, 119, 0.06);
+  letter-spacing: -0.01em;
+}
+
+.btn-react:hover, .btn-reply:hover {
+  box-shadow: 0 8px 24px rgba(219, 39, 119, 0.18);
+  transform: translateY(-3px);
+  border-color: #f9a8d4;
+  background: #ffffff;
+}
+
+.btn-react--active {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  border-color: #f9a8d4;
+}
+
+/* Daily Inspiration Card */
+.mindful-card {
+  background: linear-gradient(145deg, #f0fdf6 0%, #dcfce7 100%);
+  border: 1.5px solid #bbf7d0;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 8px 36px rgba(22, 163, 74, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.mindful-card:hover {
+  border-color: #86efac;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 20px 48px rgba(22, 163, 74, 0.1);
+}
+
+.mindful-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.mindful-header h3 {
+  color: #0f4f28;
+  font-weight: 900;
+  font-size: 1.05rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.mindful-body p {
+  color: #155c30;
+  font-size: 1.08rem;
+  line-height: 1.85;
+  margin-bottom: 28px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+}
+
+.mindful-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1.5px solid rgba(134, 239, 172, 0.5);
+}
+
+.mindful-footer p {
+  color: #166534;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.mindful-emoji { font-size: 1.4rem; }
+
+/* --- 9. BUTTONS --- */
+.btn-primary {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: var(--brand-blue);
+  border: 1.5px solid #bfdbfe;
+  padding: 8px 18px;
+  border-radius: 20px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 0.83rem;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-block;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary:hover {
+  background: var(--brand-blue);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.28);
+  border-color: var(--brand-blue);
+}
+
+/* --- 10. PAGE LOAD ANIMATIONS --- */
+@keyframes softFadeUp {
+  from { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0);  }
+}
+
+.top-header    { animation: softFadeUp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.welcome-banner, .card { animation: softFadeUp 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+.welcome-banner     { animation-delay: 0.05s; }
+.schedule-card      { animation-delay: 0.10s; }
+.assignments-card   { animation-delay: 0.15s; }
+.resources-card     { animation-delay: 0.20s; }
+.mentor-note-card   { animation-delay: 0.25s; }
+.mindful-card       { animation-delay: 0.30s; }
+
+
+/* ═════════════════════════════════════════
+   MOBILE RESPONSIVENESS (UNTOUCHED & PERFECT)
+   ═════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem 1.5rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .welcome-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .mood-tracker {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .mood-btn {
+    min-width: 70px;
+    padding: 0.8rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  .mood-btn .emoji {
+    font-size: 1.8rem;
+  }
+
+  .connection-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+ .dashboard-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  /* 1. Give the top of the page some breathing room under the sticky header */
+  .main-content {
+    padding: 1.5rem 1.25rem 2rem; 
+    overflow-y: auto;
+    margin-top: 0; 
+  }
+
+  /* 2. Soften the gap below the greeting */
+  .top-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1rem; 
+  }
+
+  .header-actions {
+    display: none; 
+  }
+
+  /* 3. RESTORE THE INNER SPACING! This fixes the ugly squeezed look inside the card */
+  .welcome-banner {
+    padding: 1.5rem 1.25rem;
+    gap: 1.25rem; /* Pushes the text and mood buttons safely apart */
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+  }
+
+  .welcome-banner::before {
+    display: none; 
+  }
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 1.25rem 0.75rem 2rem;
+    margin-top: 52px;
+  }
+
+  .top-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .welcome-text h2 {
+    font-size: 1.1rem;
+  }
+
+  .welcome-text p {
+    font-size: 0.85rem;
+  }
+
+  .mood-btn {
+    min-width: 50px;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .mood-btn .emoji {
+    font-size: 1.3rem;
+  }
+
+  .mood-btn .label {
+    font-size: 0.65rem;
+  }
+
+  .card {
+    padding: 1rem;
+    border-radius: 0.875rem;
+  }
+
+  .card h3 {
+    font-size: 0.9rem;
+  }
+
+  .schedule-item {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .schedule-item::before {
+    left: -20px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .schedule-list {
+    margin-left: 8px;
+    padding-left: 16px;
+  }
+
+  .mentor-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dashboard-grid {
+    gap: 0.75rem;
+  }
+
+  .resource-btn {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.75rem;
+  }
+
+  .mindful-body p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}

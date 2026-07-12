@@ -1,0 +1,165 @@
+/* =========================================
+   BWF GLOBAL STYLES — MOBILE RESPONSIVE
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  --bg-main: #f4f7fd;
+  --bg-card: #ffffff;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #eef2f9;
+
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+
+  --brand-blue: #3b82f6;
+  --brand-blue-mid: #60a5fa;
+  --brand-blue-light: #eff6ff;
+  --brand-teal: #06b6d4;
+
+  --border-radius-lg: 1.5rem;
+  --border-radius-md: 1rem;
+  --border-radius-sm: 0.625rem;
+
+  --shadow-soft: 0 4px 20px rgba(0,0,0,0.04);
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+  
+  /* Base font size for rem calculations */
+  --base-font-size: 16px;
+}
+
+html { font-size: 16px; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+p, label, input, button, textarea, small {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+}
+
+button { font-family: 'Nunito', sans-serif; }
+
+::-webkit-scrollbar { width: 0.3rem; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 0.625rem; }
+::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+@media (max-width: 640px) {
+  html { font-size: 14px; }
+}
+
+/* ═════════════════════════════════════════
+   RESPONSIVE UTILITY CLASSES
+   ═════════════════════════════════════════ */
+
+/* Responsive spacing utilities */
+@media (max-width: 768px) {
+  /* Reduce horizontal padding on mobile */
+  .px-responsive {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Reduce vertical padding on mobile */
+  .py-responsive {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-lg {
+    font-size: 1.25rem;
+  }
+
+  .text-responsive-md {
+    font-size: 1rem;
+  }
+
+  .text-responsive-sm {
+    font-size: 0.875rem;
+  }
+
+  /* Responsive display utilities */
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  /* Responsive flex direction */
+  .flex-responsive {
+    flex-direction: column;
+  }
+
+  /* Responsive grid */
+  .grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Responsive width */
+  .w-responsive {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Responsive border radius */
+  .rounded-responsive {
+    border-radius: 0.875rem;
+  }
+
+  /* Touch-friendly button size */
+  .btn-touch {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .px-responsive {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .py-responsive {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .text-responsive-lg {
+    font-size: 1.1rem;
+  }
+
+  .text-responsive-md {
+    font-size: 0.9rem;
+  }
+
+  .text-responsive-sm {
+    font-size: 0.8rem;
+  }
+
+  .rounded-responsive {
+    border-radius: 0.75rem;
+  }
+}

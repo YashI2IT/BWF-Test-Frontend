@@ -1,0 +1,497 @@
+/* =============================================
+   BWF SIDEBAR + STUDENT SHELL — FULLY RESPONSIVE
+   ============================================= */
+
+/* ── SHELL ── */
+.student-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-main);
+}
+
+.student-page-area {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 15rem;
+  min-width: 15rem;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--brand-blue) 35%, var(--brand-teal) 65%, transparent);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Logo */
+.sidebar-logo {
+  padding: 1.625rem 1.375rem 1.375rem 1.375rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin-bottom: 0.875rem;
+}
+
+.logo-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: transparent;
+  color: #fff;
+  border-radius: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar-logo h2 {
+  font-size: 1.125rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.4px;
+}
+
+/* Nav */
+.sidebar-nav {
+  padding: 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.875rem;
+  border-radius: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+}
+
+.nav-item:hover {
+  background: var(--brand-blue-light);
+  color: var(--brand-blue);
+  transform: translateX(3px);
+}
+
+.nav-item.active {
+  background: linear-gradient(120deg, var(--brand-blue-light), #e0f2fe);
+  color: var(--brand-blue);
+  font-weight: 800;
+  border-color: #bfdbfe;
+  box-shadow: 0 2px 12px rgba(59,130,246,0.1);
+}
+
+/* Nav icon wrapper — holds the unread badge */
+.nav-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Unread badge on Notice Board nav item */
+.nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #f97316;
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 900;
+  min-width: 1rem;
+  height: 1rem;
+  border-radius: 10px;
+  padding: 0 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(249,115,22,0.4);
+  animation: dotPulse 2s ease infinite;
+}
+
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 2px 6px rgba(249,115,22,0.4); }
+  50%      { box-shadow: 0 2px 10px rgba(249,115,22,0.7); }
+}
+
+/* ── BOTTOM BAR ── */
+.sidebar-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.125rem 1.125rem;
+  border-top: 1px solid var(--sidebar-border);
+  margin-top: auto;
+  gap: 0.625rem;
+}
+
+/* Bell button */
+.sb-bell {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+  border: 1.5px solid #e8edf5;
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  flex-shrink: 0;
+}
+
+.sb-bell:hover {
+  background: var(--brand-blue-light);
+  color: var(--brand-blue);
+  border-color: #bfdbfe;
+  transform: scale(1.07);
+}
+
+/* Orange bell when there are unread notices */
+.sb-bell--on {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #f97316;
+  animation: bellRing 3s ease infinite;
+}
+
+@keyframes bellRing {
+  0%,100% { transform: rotate(0deg); }
+  5%       { transform: rotate(-12deg); }
+  10%      { transform: rotate(12deg); }
+  15%      { transform: rotate(-8deg); }
+  20%      { transform: rotate(8deg); }
+  25%      { transform: rotate(0deg); }
+}
+
+/* Badge on bell */
+.sb-bell-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #f97316;
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 900;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 10px;
+  padding: 0 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--sidebar-bg);
+  box-shadow: 0 2px 6px rgba(249,115,22,0.4);
+}
+
+/* Avatar → profile button */
+.sb-avatar {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0,0,0,0.15);
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-avatar:hover {
+  transform: scale(1.1) rotate(3deg);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.3), 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.sb-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  padding: 2px; /* Inner spacing for border effect */
+}
+
+/* Footer blob */
+.sb-footer-blob {
+  position: absolute;
+  bottom: -30px;
+  left: -20px;
+  width: 130px;
+  height: 130px;
+  background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* ═════════════════════════════════════════
+   MOBILE RESPONSIVENESS
+   ═════════════════════════════════════════ */
+
+/* Hidden by default on Desktop */
+.mobile-top-bar,
+.mobile-close-btn,
+.sidebar-overlay {
+  display: none;
+}
+
+/* Prevent scrolling when sidebar is open on mobile */
+html.sidebar-open {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  /* Transform shell layout */
+  .student-shell {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Hide sidebar off-screen, make it a drawer */
+  .sidebar {
+    position: fixed;
+    left: -16rem;
+    top: 0;
+    right: auto;
+    bottom: 0;
+    height: 100vh;
+    width: 16rem;
+    min-width: 16rem;
+    max-width: 16rem;
+    flex-shrink: 0;
+    z-index: 999;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    box-shadow: none;
+    border-right: 1px solid var(--sidebar-border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Slide sidebar in when mobile-active */
+  .sidebar.mobile-active {
+    left: 0;
+    box-shadow: 10px 0 40px rgba(0,0,0,0.15);
+  }
+
+  /* Show and style the overlay */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Show overlay when it has active class */
+  .sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Show mobile header */
+  .mobile-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem; /* Slimmer padding */
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    
+    /* CRITICAL: Make it fixed so it stays on top */
+    position: fixed; 
+    top: 0;
+    left: 0;
+    right: 0;
+    
+    z-index: 100; /* Ensure it stays above everything */
+    width: 100%;
+    box-sizing: border-box;
+    height: 56px; 
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-btn,
+  .mobile-avatar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 0.5rem;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-btn:active,
+  .mobile-avatar-btn:active {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .mobile-logo-text {
+    font-weight: 900;
+    font-size: 1.1rem;
+    background: linear-gradient(135deg, var(--brand-blue), var(--brand-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Show close button inside drawer */
+  .mobile-close-btn {
+    display: flex;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.75rem;
+    background: #f3f4f6;
+    border-radius: 50%;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+    z-index: 1001;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .mobile-close-btn:active {
+    background: #e5e7eb;
+    transform: scale(0.95);
+  }
+
+  /* Make page area full width on mobile */
+  .student-page-area {
+    width: 100%;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: block;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    padding-top: 56px;
+  }
+
+  /* Keep page roots aligned under fixed mobile header */
+  .student-page-area > * {
+    margin-top: 0 !important;
+  }
+}
+
+.mobile-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .sidebar-logo h2 {
+    font-size: 1rem;
+  }
+
+  .nav-item {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .nav-item svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .sidebar {
+    width: 14rem;
+    min-width: 14rem;
+    max-width: 14rem;
+    left: -14rem;
+  }
+
+  .mobile-top-bar {
+    padding: 0.6rem 0.8rem;
+    height: 52px;
+  }
+
+  .mobile-menu-btn,
+  .mobile-avatar-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .student-page-area {
+    min-height: 100vh;
+    padding-top: 52px;
+  }
+}
