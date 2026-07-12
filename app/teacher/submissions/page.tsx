@@ -138,7 +138,7 @@ export default function SubmissionsPage() {
 
           {/* Clean Pill Filters */}
           <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full md:w-auto min-w-0" suppressHydrationWarning>
-            <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden justify-start md:justify-center">
+            <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit max-w-full overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden justify-start md:justify-center">
               {['All', 'pending', 'approved', 'rejected'].map((f) => (
                 <TabsTrigger 
                   key={f} 

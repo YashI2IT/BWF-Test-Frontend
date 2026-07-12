@@ -1001,64 +1001,47 @@ export default function SchedulePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full h-[42px] rounded-[16px] justify-start text-left font-medium border-gray-200 bg-white hover:bg-gray-50 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors px-4",
-                          !formData.date && "text-slate-400"
-                        )}
-                      >
-                        <CalendarDays className="mr-2.5 h-[16px] w-[16px] text-slate-500" />
-                        {formData.date ? format(formData.date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-[20px] border-slate-200 shadow-xl" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.date}
-                        onSelect={(date) => date && setFormData({...formData, date})}
-                        initialFocus
-                        className="p-3"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <input 
+                    type="date"
+                    required
+                    value={formData.date ? format(formData.date, "yyyy-MM-dd") : ''}
+                    onChange={(e) => setFormData({...formData, date: e.target.value ? new Date(e.target.value) : new Date()})}
+                    className="w-full h-[42px] rounded-[16px] border border-gray-200 bg-white hover:bg-gray-50 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors px-4 text-[14px] font-medium"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Class Type</label>
-                  <Select value={formData.type} onValueChange={(val: any) /* eslint-disable-line @typescript-eslint/no-explicit-any */ => setFormData({...formData, type: val})}>
-                    <SelectTrigger className="h-[42px] rounded-[16px] bg-white border-gray-200 focus:ring-1 focus:ring-black focus:border-black hover:border-gray-300 transition-colors font-medium px-4 data-[state=open]:bg-gray-50 data-[state=open]:text-slate-900">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-[16px] shadow-lg border-slate-200">
-                      <SelectItem value="in_person" className="rounded-[10px] font-medium my-0.5">In Person</SelectItem>
-                      <SelectItem value="online" className="rounded-[10px] font-medium my-0.5">Online Class</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    className="w-full h-[42px] rounded-[16px] border border-gray-200 bg-white hover:bg-gray-50 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors px-4 text-[14px] font-medium appearance-none"
+                  >
+                    <option value="in_person">In Person</option>
+                    <option value="online">Online Class</option>
+                  </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Start Time</label>
-                  <div className="relative">
-                    <CustomTimePicker 
-                      value={formData.startTime}
-                      onChange={val => setFormData({...formData, startTime: val})}
-                      placeholder="Start Time"
-                    />
-                  </div>
+                  <input
+                    type="time"
+                    required
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    className="w-full h-[42px] rounded-[16px] border border-slate-200 bg-slate-50 hover:bg-slate-100 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors px-4 text-[14px] font-medium"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">End Time</label>
-                  <div className="relative">
-                    <CustomTimePicker 
-                      value={formData.endTime}
-                      onChange={val => setFormData({...formData, endTime: val})}
-                      placeholder="End Time"
-                    />
-                  </div>
+                  <input
+                    type="time"
+                    required
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                    className="w-full h-[42px] rounded-[16px] border border-slate-200 bg-slate-50 hover:bg-slate-100 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors px-4 text-[14px] font-medium"
+                  />
                 </div>
               </div>
 

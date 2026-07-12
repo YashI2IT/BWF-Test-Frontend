@@ -340,7 +340,7 @@ export default function ComplaintsPage() {
         </div>
 
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'history')} className="w-full md:w-auto min-w-0" suppressHydrationWarning>
-          <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit overflow-x-auto min-w-0 hide-scrollbar">
+          <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit max-w-full overflow-x-auto min-w-0 hide-scrollbar">
             <TabsTrigger value="active" className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
               {viewMode === 'active' && (
                 <motion.div
@@ -426,13 +426,11 @@ export default function ComplaintsPage() {
 
       {/* Content Area */}
       <div className="w-full min-w-0">
-          <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
                 className="space-y-4"
               >
                 {[1, 2, 3].map((i) => (
@@ -495,7 +493,6 @@ export default function ComplaintsPage() {
                 key="empty"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 className="flex flex-col items-center justify-center py-20 text-center"
               >
@@ -732,7 +729,6 @@ export default function ComplaintsPage() {
                 </AnimatePresence>
               </motion.div>
             )}
-          </AnimatePresence>
         </div>
 
       {/* Pagination */}

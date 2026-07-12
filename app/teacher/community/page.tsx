@@ -439,7 +439,7 @@ export default function CommunityPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-2">
               <h2 className="text-lg font-bold tracking-tight text-slate-900">Your Feed</h2>
               <Tabs value={section} onValueChange={(v) => setSection(v as FeedSection)} suppressHydrationWarning>
-                <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center">
+                <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center max-w-full overflow-x-auto hide-scrollbar">
                   <TabsTrigger value="latest" className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
                     {section === 'latest' && (
                       <motion.div
@@ -778,7 +778,7 @@ export default function CommunityPage() {
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                   <div className="space-y-4 p-6 flex-1 overflow-y-auto scrollable-hide min-h-0">
                   <Tabs value={draftType} onValueChange={(v) => setDraftType(v as PostType)} className="w-full" suppressHydrationWarning>
-                    <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full">
+                    <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full max-w-full overflow-x-auto hide-scrollbar">
                       <TabsTrigger value="text" className="flex-1 relative rounded-full h-full text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
                         {draftType === 'text' && (
                           <motion.div
