@@ -532,7 +532,16 @@ export default function TeacherStudentsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-sm font-medium text-gray-700 block mb-1.5">Session Type</label>
-                          <Input placeholder="class / workshop" value={scheduleForm.sessionType} onChange={e => setScheduleForm({ ...scheduleForm, sessionType: e.target.value })} className="h-[42px] rounded-[16px] border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 shadow-sm px-4 placeholder:text-slate-400" />
+                          <select
+                            value={scheduleForm.sessionType}
+                            onChange={e => setScheduleForm({ ...scheduleForm, sessionType: e.target.value })}
+                            className="w-full h-[42px] rounded-[16px] border border-gray-200 bg-white font-medium text-[14px] px-4 text-slate-900 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300 shadow-sm"
+                          >
+                            <option value="class">Class</option>
+                            <option value="workshop">Workshop</option>
+                            <option value="training">Training</option>
+                            <option value="other">Other</option>
+                          </select>
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-sm font-medium text-gray-700 block mb-1.5">Date</label>

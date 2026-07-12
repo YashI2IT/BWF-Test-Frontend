@@ -105,7 +105,7 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white sm:rounded-2xl rounded-b-none rounded-t-2xl shadow-2xl flex flex-col md:flex-row h-[92dvh] sm:h-[85vh] sm:max-h-[750px] border border-slate-200 bottom-0 sm:bottom-auto top-auto sm:top-1/2 translate-y-0 sm:-translate-y-1/2 fixed !z-[9999]">
+      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white sm:rounded-2xl rounded-b-none rounded-t-2xl shadow-2xl flex flex-col md:flex-row h-[92dvh] sm:h-[85vh] sm:max-h-[750px] border border-slate-200 bottom-0 sm:bottom-auto top-auto sm:top-1/2 translate-y-0 sm:-translate-y-1/2 fixed" style={{ zIndex: 9999 }}>
         <DialogTitle className="sr-only">Edit Profile</DialogTitle>
         
         {/* Left Sidebar — vertical on desktop, horizontal tabs on mobile */}

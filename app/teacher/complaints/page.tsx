@@ -143,29 +143,40 @@ export default function ComplaintsPage() {
   };
 
   const normalizeComplaint = (item: RawComplaint): Complaint => {
-    let dateTime = item.date;
-    if (item.date && item.time) {
-      const d = new Date(item.date);
-      const [hours, minutes] = item.time.split(':');
-      d.setHours(parseInt(hours), parseInt(minutes));
-      dateTime = d.toISOString();
+    // Safely convert date — handle both string and Date object from MongoDB
+    let dateTime = '';
+    try {
+      const rawDate = item.date ? new Date(item.date) : new Date();
+      if (item.time && typeof item.time === 'string' && item.time.includes(':')) {
+        const [hours, minutes] = item.time.split(':');
+        rawDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0);
+      }
+      dateTime = rawDate.toISOString();
+    } catch {
+      dateTime = new Date().toISOString();
     }
+
+    // Safely convert timeline dates
+    const safeDate = (d: any) => {
+      if (!d) return undefined;
+      try { return new Date(d).toISOString(); } catch { return undefined; }
+    };
 
     return {
       id: item._id,
-      title: item.title,
-      description: item.description,
+      title: item.title || '',
+      description: item.description || '',
       reporter: getReporterDisplay(item.reporter),
-      role: item.role as ReporterRole,
-      dateTime: dateTime,
-      location: item.location,
-      priority: item.priority as any,
-      status: item.status as any,
+      role: (item.role || 'student') as ReporterRole,
+      dateTime,
+      location: item.location || '',
+      priority: (item.priority || 'Low') as any,
+      status: (item.status || 'OPEN') as any,
       timeline: {
-        reported: item.timeline?.reportedDate || item.date,
-        resolved: item.timeline?.resolvedDate,
+        reported: safeDate(item.timeline?.reportedDate) || dateTime,
+        resolved: safeDate(item.timeline?.resolvedDate),
         resolvedReason: item.timeline?.resolvedReason,
-        escalated: item.timeline?.escalatedDate,
+        escalated: safeDate(item.timeline?.escalatedDate),
         escalatedReason: item.timeline?.escalatedReason,
       }
     };
@@ -723,7 +734,7 @@ export default function ComplaintsPage() {
         </div>
 
       {/* Pagination */}
-      {filteredComplaints.length > ITEMS_PER_PAGE && (
+      {activeSource.length > 0 && totalPages > 1 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
