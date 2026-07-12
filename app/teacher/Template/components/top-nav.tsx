@@ -126,7 +126,7 @@ export function TopNav() {
               {messages.length > 0 ? messages.map((msg) => (
                 <DropdownMenuItem 
                   key={msg.id}
-                  onClick={() => setMessages(messages.filter(m => m.id !== msg.id))}
+                  onSelect={() => setMessages(messages.filter(m => m.id !== msg.id))}
                   className="flex items-start gap-3 p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors outline-none"
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${msg.color.split(' ')[0]}`}>
@@ -179,7 +179,7 @@ export function TopNav() {
               {notifications.length > 0 ? notifications.map((notif) => (
                 <DropdownMenuItem 
                   key={notif.id}
-                  onClick={() => setNotifications(notifications.filter(n => n.id !== notif.id))}
+                  onSelect={() => setNotifications(notifications.filter(n => n.id !== notif.id))}
                   className="flex items-start gap-3 p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors outline-none"
                 >
                   <div className={`w-10 h-10 rounded-full ${notif.color} flex items-center justify-center shrink-0`}>
@@ -241,8 +241,7 @@ export function TopNav() {
               </div>
               
               <DropdownMenuItem 
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => setIsProfileModalOpen(true)}
+                onSelect={() => setIsProfileModalOpen(true)}
                 className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
@@ -256,8 +255,7 @@ export function TopNav() {
               </DropdownMenuItem>
               
               <DropdownMenuItem 
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => setIsWidgetModalOpen(true)}
+                onSelect={() => setIsWidgetModalOpen(true)}
                 className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
@@ -273,7 +271,7 @@ export function TopNav() {
               <DropdownMenuSeparator className="bg-slate-100 my-1 mx-[-8px]" />
               
               <DropdownMenuItem 
-                onClick={handleLogout}
+                onSelect={handleLogout}
                 className="flex items-center gap-2.5 p-2.5 mt-1 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <LogOut className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />

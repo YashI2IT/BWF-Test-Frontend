@@ -42,7 +42,7 @@ function NoticeCard({
   onDelete 
 }: { 
   notice: Notice, 
-  onUpdate: (id: string, data: { title: string, body: string, category: string, image?: File | null, removeImage?: boolean }) => Promise<void>, 
+  onUpdate: (id: string, data: { title: string, body: string, category: string, image?: File | null, removeImage?: boolean }) => Promise<boolean>, 
   onDelete: (id: string) => void 
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -56,10 +56,12 @@ function NoticeCard({
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onUpdate(notice._id, { ...editData, image: editImageFile, removeImage });
+    const success = await onUpdate(notice._id, { ...editData, image: editImageFile, removeImage });
     setIsSaving(false);
-    setIsEditing(false);
-    setRemoveImage(false);
+    if (success) {
+      setIsEditing(false);
+      setRemoveImage(false);
+    }
   };
 
   return (
@@ -97,7 +99,11 @@ function NoticeCard({
             ) : (
               <>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setEditData({ title: notice.title, body: notice.body, category: notice.category });
+                    setEditImagePreview(notice.imageUrl || null);
+                    setIsEditing(true);
+                  }}
                   className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-blue-600 hover:border-blue-200 shadow-sm transition-all"
                   title="Edit Notice"
                 >
@@ -245,15 +251,15 @@ export default function NoticesPage() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (showSkeleton = true) => {
     try {
-      setLoading(true);
+      if (showSkeleton) setLoading(true);
       const res = await api.get('/teacher/notices');
       setData(res.data);
     } catch {
       showMessage('Failed to load notices.', 'error');
     } finally {
-      setLoading(false);
+      if (showSkeleton) setLoading(false);
     }
   }, []);
 
@@ -285,7 +291,7 @@ export default function NoticesPage() {
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       
-      await loadData();
+      await loadData(false);
     } catch {
       showMessage('Failed to broadcast notice.', 'error');
     } finally {
@@ -308,9 +314,11 @@ export default function NoticesPage() {
       
       await api.put(`/teacher/notices/${noticeId}`, payload);
       showMessage('Notice updated successfully!', 'success');
-      await loadData();
+      await loadData(false);
+      return true;
     } catch {
       showMessage('Failed to update notice.', 'error');
+      return false;
     }
   };
 
@@ -319,7 +327,7 @@ export default function NoticesPage() {
     try {
       await api.delete(`/teacher/notices/${noticeId}`);
       showMessage('Notice deleted successfully!', 'success');
-      await loadData();
+      await loadData(false);
     } catch {
       showMessage('Failed to delete notice.', 'error');
     }
@@ -376,22 +384,22 @@ export default function NoticesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
           
           {/* Create Form */}
-          <div className="lg:col-span-4 lg:sticky lg:top-[120px] lg:self-start lg:z-10 lg:h-[calc(100vh-160px)]">
+          <div className="lg:col-span-4 lg:sticky lg:top-[104px] lg:self-start lg:max-h-[calc(100vh-128px)] flex flex-col min-h-0">
             <motion.div
-              className="h-full"
+              className="flex flex-col flex-1 min-h-0"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <Card className="h-full flex flex-col rounded-[28px] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+              <Card className="flex flex-col flex-1 min-h-0 rounded-[28px] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
                 <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50/30 shrink-0">
                   <h3 className="text-[16px] font-bold text-slate-800 flex items-center gap-2">
                     <Send className="w-5 h-5 text-slate-600" /> New Broadcast
                   </h3>
                 </div>
                 <CardContent className="p-0 flex flex-col flex-1 min-h-0">
-                  <form onSubmit={handleSubmit} className="flex flex-col w-full h-full">
-                    <div className="flex-1 flex flex-col space-y-5 p-6 min-h-0 overflow-y-auto custom-scrollbar">
+                  <form onSubmit={handleSubmit} className="flex flex-col w-full flex-1 min-h-0">
+                    <div className="flex-1 flex flex-col space-y-5 p-6 overflow-y-auto scrollable-hide min-h-0">
                       <div className="space-y-2 shrink-0">
                         <label className="text-sm font-medium text-gray-700 block mb-1.5">Notice Title</label>
                         <Input 

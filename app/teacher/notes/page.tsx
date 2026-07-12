@@ -180,7 +180,15 @@ export default function NotesPage() {
             </motion.p>
           </div>
           
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(val) => {
+            setOpen(val);
+            if (!val) {
+              setTimeout(() => {
+                setMessage('');
+                setSelectedStudent('');
+              }, 200);
+            }
+          }}>
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
               <DialogTrigger asChild>
                 <Button className="rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-sm px-5 h-9 font-bold text-[13px] transition-all duration-300 flex items-center gap-2 group">

@@ -50,16 +50,16 @@ export default function SubmissionsPage() {
   const [selectedPdfUrl, setSelectedPdfUrl] = useState<string | null>(null);
   const [selectedPdfTitle, setSelectedPdfTitle] = useState<string>('');
 
-  const loadData = async () => {
+  const loadData = async (showSkeleton = true) => {
     try {
-      setLoading(true);
+      if (showSkeleton) setLoading(true);
       const data = await getSubmissions();
       setSubmissions(data);
     } catch (error) {
       console.error(error);
       toast({ title: 'Error', description: 'Failed to load submissions.', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      if (showSkeleton) setLoading(false);
     }
   };
 
@@ -102,7 +102,7 @@ export default function SubmissionsPage() {
       await reviewSubmission(id, { status: reviewStatus, rejectionNote: feedbackInput.trim() });
       toast({ title: 'Success', description: 'Review saved successfully.' });
       setExpandedId(null);
-      loadData();
+      loadData(false);
     } catch (error) {
       console.error(error);
       toast({ title: 'Error', description: 'Failed to save review.', variant: 'destructive' });
@@ -137,13 +137,13 @@ export default function SubmissionsPage() {
           </div>
 
           {/* Clean Pill Filters */}
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full md:w-auto" suppressHydrationWarning>
-            <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full md:w-auto min-w-0" suppressHydrationWarning>
+            <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden justify-start md:justify-center">
               {['All', 'pending', 'approved', 'rejected'].map((f) => (
                 <TabsTrigger 
                   key={f} 
                   value={f} 
-                  className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300 capitalize"
+                  className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300 capitalize shrink-0 whitespace-nowrap"
                 >
                   {filter === f && (
                     <motion.div

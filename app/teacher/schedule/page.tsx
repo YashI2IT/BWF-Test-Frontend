@@ -265,7 +265,19 @@ export default function SchedulePage() {
       const res = await api.post('/teacher/schedule', payload);
       
       setSchedules([...schedules, res.data]);
-      setIsAddOpen(false);
+      closeAddModal();
+      toast({ title: 'Schedule added successfully' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Failed to add schedule', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const closeAddModal = () => {
+    setIsAddOpen(false);
+    setTimeout(() => {
       setFormData({
         title: '',
         type: 'in_person',
@@ -276,13 +288,7 @@ export default function SchedulePage() {
         joinLink: ''
       });
       setAttachments([]);
-      toast({ title: 'Schedule added successfully' });
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Failed to add schedule', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, 200); // allow exit animation to finish before clearing
   };
 
   const handleDelete = async (id: string) => {
@@ -974,7 +980,7 @@ export default function SchedulePage() {
       </div>
 
       {/* ADD SCHEDULE MODAL */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog open={isAddOpen} onOpenChange={(open) => !open ? closeAddModal() : setIsAddOpen(true)}>
         <DialogContent className="sm:max-w-[480px] rounded-[28px] p-7 border-none shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="mb-2 shrink-0">
             <DialogTitle className="text-[20px] font-extrabold text-slate-900 tracking-tight">Add Class Schedule</DialogTitle>
@@ -1158,7 +1164,7 @@ export default function SchedulePage() {
             </div>
 
             <DialogFooter className="mt-4 pt-4 border-t border-slate-100 shrink-0">
-              <Button type="button" variant="ghost" onClick={() => setIsAddOpen(false)} className="h-[40px] rounded-full font-bold px-6 text-[14px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all">
+              <Button type="button" variant="ghost" onClick={closeAddModal} className="h-[40px] rounded-full font-bold px-6 text-[14px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all">
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting} className="h-[40px] rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 text-[14px] shadow-sm shadow-slate-200 transition-all">
@@ -1171,8 +1177,15 @@ export default function SchedulePage() {
       {/* PDF Viewer Modal */}
       <Dialog open={!!selectedPdfUrl} onOpenChange={(open) => !open && setSelectedPdfUrl(null)}>
         <DialogContent className="max-w-5xl sm:max-w-5xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col bg-white">
-          <DialogHeader className="p-4 border-b border-slate-100 bg-white z-10 shrink-0">
+          <DialogHeader className="p-4 border-b border-slate-100 bg-white z-10 shrink-0 flex flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-[16px] font-bold text-slate-800">{selectedPdfTitle}</DialogTitle>
+            <button 
+              onClick={() => setSelectedPdfUrl(null)}
+              className="p-2 -mr-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </DialogHeader>
           <div className="flex-1 w-full bg-slate-50 relative overflow-hidden flex items-center justify-center">
             {selectedPdfUrl && (

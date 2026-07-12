@@ -14,9 +14,9 @@ export default function TeacherLayout({
     <AuthGuard>
       <SidebarProvider>
         <TeacherSidebar />
-        <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
+        <div className="flex flex-1 flex-col min-w-0">
           <TopNav />
-          <main className="flex flex-1 flex-col min-w-0 overflow-x-hidden bg-background">{children}</main>
+          <main className="flex flex-1 flex-col min-w-0 bg-background">{children}</main>
         </div>
       </SidebarProvider>
     </AuthGuard>

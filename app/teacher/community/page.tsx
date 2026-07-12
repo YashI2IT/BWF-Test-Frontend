@@ -323,7 +323,7 @@ export default function CommunityPage() {
       };
 
       const res = await api.put(`/teacher/posts/${post._id}`, payload);
-      const updatedPost = normalizePost(res.data);
+      const updatedPost = normalizePost(res.data.post || res.data);
       setPosts((current) => current.map((item) => (item._id === post._id ? updatedPost : item)));
       cancelEditing();
       showMessage('Post updated successfully!', 'success');
@@ -364,7 +364,7 @@ export default function CommunityPage() {
   const togglePin = async (post: CommunityPost) => {
     try {
       const res = await api.put(`/teacher/posts/${post._id}/pin`, { pinned: !post.pinned });
-      const updatedPost = normalizePost(res.data);
+      const updatedPost = normalizePost(res.data.post || res.data);
       setPosts((current) => current.map((item) => (item._id === post._id ? updatedPost : item)));
       showMessage(updatedPost.pinned ? 'Post pinned.' : 'Post unpinned.', 'success');
     } catch (error: unknown) {
@@ -433,9 +433,9 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:gap-8 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-6 md:gap-8 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           {/* Feed Column */}
-          <section className="order-2 min-w-0 space-y-6 xl:order-1">
+          <section className="order-2 lg:order-1 min-w-0 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-2">
               <h2 className="text-lg font-bold tracking-tight text-slate-900">Your Feed</h2>
               <Tabs value={section} onValueChange={(v) => setSection(v as FeedSection)} suppressHydrationWarning>
@@ -766,17 +766,17 @@ export default function CommunityPage() {
           </section>
 
           {/* Create Post Sidebar */}
-          <aside className="order-1 xl:order-2 xl:sticky xl:top-[120px] xl:self-start">
-            <Card className="rounded-[28px] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col xl:max-h-[calc(100vh-140px)] overflow-hidden">
+          <aside className="order-1 lg:order-2 lg:sticky lg:top-[104px] lg:self-start lg:max-h-[calc(100vh-128px)] flex flex-col min-h-0">
+            <Card className="rounded-[28px] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
                  <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-900 mb-1">
                    <MessageSquarePlus className="h-4 w-4" /> Share with Community
                  </p>
                  <h2 className="text-lg font-bold text-slate-900">Create Post</h2>
               </div>
-              <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                  <div className="space-y-4 p-6 flex-1 overflow-y-auto scrollbar-thin">
+              <CardContent className="p-0 flex flex-col flex-1 min-h-0">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                  <div className="space-y-4 p-6 flex-1 overflow-y-auto scrollable-hide min-h-0">
                   <Tabs value={draftType} onValueChange={(v) => setDraftType(v as PostType)} className="w-full" suppressHydrationWarning>
                     <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full">
                       <TabsTrigger value="text" className="flex-1 relative rounded-full h-full text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">

@@ -199,6 +199,7 @@ export default function ComplaintsPage() {
       setIsLoading(true);
       const res = await api.get('/teacher/complaints/history');
       setHistoryData(res.data.map(normalizeComplaint));
+      setCurrentPage(1); // ensure page is valid after new data
     } catch (error) {
       console.error("Failed to fetch history:", error);
     } finally {
@@ -248,6 +249,7 @@ export default function ComplaintsPage() {
     setStatusFilter('All');
     setPriorityFilter('All');
     setRoleFilter('All');
+    setIsLoading(true); // show skeleton immediately while fetch is in-flight
   }, [viewMode]);
 
   // Reset page when filters change
@@ -524,7 +526,7 @@ export default function ComplaintsPage() {
               </motion.div>
             ) : (
               <motion.div
-                key="list"
+                key={`list-${viewMode}`}
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"

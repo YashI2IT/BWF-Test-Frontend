@@ -107,7 +107,7 @@ export function TeacherSidebar() {
                 </SidebarGroupLabel>
               )}
               {expandedGroups[group.label] && (
-                <SidebarGroupContent className="pl-6 relative overflow-hidden animate-slide-in-top">
+                <SidebarGroupContent className="pl-6 relative overflow-hidden">
                   <SidebarMenu className="relative z-10">
                     {group.items.map((item, index) => {
                       const isActive = pathname === item.href;
@@ -117,8 +117,7 @@ export function TeacherSidebar() {
                       return (
                         <SidebarMenuItem
                           key={item.href}
-                          className="animate-fade-in relative mb-1"
-                          style={{ animationDelay: `${(groupIndex * 3 + index) * 40}ms` }}
+                          className="relative mb-1"
                         >
                           {/* Perfect SVG Tree Line */}
                           <svg 
@@ -127,16 +126,16 @@ export function TeacherSidebar() {
                           >
                             {/* Top part of vertical line */}
                             <line 
-                              x1="12" 
+                              x1="17" 
                               y1={isFirst ? "-16" : "-4"} 
-                              x2="12" 
+                              x2="17" 
                               y2={isLast ? "8" : "48"} 
                               stroke="#cbd5e1" 
                               strokeWidth="2" 
                             />
                             {/* The curved branch */}
                             <path 
-                              d="M 12 8 Q 12 20 24 20" 
+                              d="M 17 8 Q 17 20 24 20" 
                               fill="none" 
                               stroke="#cbd5e1" 
                               strokeWidth="2" 
@@ -154,7 +153,10 @@ export function TeacherSidebar() {
                             onClick={() => setOpenMobile(false)}
                           >
                             <Link href={item.href} className="w-full flex items-center justify-between">
-                              <span className="text-[14.5px]">{item.label}</span>
+                              <div className="flex items-center gap-3">
+                                <item.icon className={`w-[18px] h-[18px] stroke-[2px] ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                                <span className={`text-[14.5px] ${isActive ? 'text-blue-700 font-bold' : ''}`}>{item.label}</span>
+                              </div>
                               {item.badge && (
                                 <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${item.badge.color}`}>
                                   {item.badge.count}

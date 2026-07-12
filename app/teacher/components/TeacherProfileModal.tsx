@@ -30,15 +30,25 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
 
   useEffect(() => {
     if (isOpen) {
+      const defaultState = {
+        name: '', email: '', profilePic: '', phone: '', gender: '', dob: '', address: '',
+        hostel: '', hostelLocation: '', qualification: '', joiningDate: '', status: 'Active',
+        emergencyName: '', emergencyPhone: '', emergencyRelation: ''
+      };
+
       if (initialProfile) {
         setProfile({
-          ...profile,
+          ...defaultState,
           ...initialProfile
         });
         if (initialProfile.profileVisibility) setVisibility(initialProfile.profileVisibility);
       } else {
+        setProfile(defaultState);
         loadProfile();
       }
+      
+      setActiveTab('personal');
+      setPasswordData({ oldPassword: '', newPassword: '' });
     }
   }, [isOpen, initialProfile]);
 
@@ -46,7 +56,7 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
     try {
       const res = await api.get('/teacher/profile');
       setProfile((prev: any) => ({
-          ...prev,
+          ...prev, // Keep default empty fields if backend omits them
           ...res.data
       }));
       if (res.data.profileVisibility) setVisibility(res.data.profileVisibility);
@@ -227,16 +237,16 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
                     <span className="text-[14px] font-medium text-slate-900">Gender</span>
                   </div>
                   <div className="flex-1 w-full max-w-md">
-                    <Select value={profile.gender || ''} onValueChange={(value) => setProfile({...profile, gender: value})}>
-                      <SelectTrigger className={`${inputClass} focus-visible:border-slate-400 focus-visible:ring-slate-200`}>
-                        <SelectValue placeholder="Select Gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male" className="focus:bg-slate-100 focus:text-slate-900">Male</SelectItem>
-                        <SelectItem value="Female" className="focus:bg-slate-100 focus:text-slate-900">Female</SelectItem>
-                        <SelectItem value="Other" className="focus:bg-slate-100 focus:text-slate-900">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select 
+                      value={profile.gender || ''} 
+                      onChange={(e) => setProfile({...profile, gender: e.target.value})}
+                      className={`${inputClass} w-full border appearance-none`}
+                    >
+                      <option value="" disabled>Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 </div>
 
@@ -245,24 +255,12 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
                     <span className="text-[14px] font-medium text-slate-900">Date of Birth</span>
                   </div>
                   <div className="flex-1 w-full max-w-md">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          className={`${inputClass} flex items-center w-full justify-start text-left font-normal ${!profile.dob ? 'text-slate-500' : ''}`}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
-                          {profile.dob ? format(new Date(profile.dob), 'PPP') : <span>dd-mm-yyyy</span>}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={profile.dob ? new Date(profile.dob) : undefined}
-                          onSelect={(date) => setProfile({...profile, dob: date ? format(date, 'yyyy-MM-dd') : ''})}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <input 
+                      type="date" 
+                      value={profile.dob || ''} 
+                      onChange={(e) => setProfile({...profile, dob: e.target.value})} 
+                      className={`${inputClass} w-full border`} 
+                    />
                   </div>
                 </div>
 
@@ -324,24 +322,12 @@ export function TeacherProfileModal({ isOpen, onClose, initialProfile }: { isOpe
                     <span className="text-[14px] font-medium text-slate-900">Joining Date</span>
                   </div>
                   <div className="flex-1 w-full max-w-md">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          className={`${inputClass} flex items-center w-full justify-start text-left font-normal ${!profile.joiningDate ? 'text-slate-500' : ''}`}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
-                          {profile.joiningDate ? format(new Date(profile.joiningDate), 'PPP') : <span>dd-mm-yyyy</span>}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={profile.joiningDate ? new Date(profile.joiningDate) : undefined}
-                          onSelect={(date) => setProfile({...profile, joiningDate: date ? format(date, 'yyyy-MM-dd') : ''})}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <input 
+                      type="date" 
+                      value={profile.joiningDate || ''} 
+                      onChange={(e) => setProfile({...profile, joiningDate: e.target.value})} 
+                      className={`${inputClass} w-full border`} 
+                    />
                   </div>
                 </div>
 

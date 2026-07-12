@@ -71,7 +71,6 @@ export default function TeacherStudentsPage() {
   const [assignmentForm, setAssignmentForm] = useState({
     title: "",
     subject: "", dueDate: "", priority: "medium" })
-  const [scheduleForm, setScheduleForm] = useState({ title: "", sessionType: "class", date: "", startTime: "", joinLink: "" })
   const [noteMessage, setNoteMessage] = useState("")
   const [mentorName, setMentorName] = useState("Teacher")
 
@@ -90,12 +89,29 @@ export default function TeacherStudentsPage() {
   useEffect(() => {
     if (!selectedStudent) {
       setOverview(null)
+      setAssignmentForm({ title: "", subject: "", dueDate: "", priority: "medium" })
+      setNoteMessage("")
+      setAttachedFile(null)
+      setFilePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
     setOverview(null) // Clear previous student's data to show skeleton
     getStudentOverview(selectedStudent)
       .then(res => setOverview(res))
       .catch(() => setOverview(getMockOverview(selectedStudent)))
+  }, [selectedStudent])
+
+  // Lock body scroll when detail panel is open
+  useEffect(() => {
+    if (selectedStudent) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [selectedStudent])
 
   const showMessage = (text: string, type: 'success' | 'error') => {
@@ -132,29 +148,6 @@ export default function TeacherStudentsPage() {
       setOverview(await getStudentOverview(selectedStudent))
     } catch {
       showMessage("Could not add assignment.", "error")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleSchedulePush = async () => {
-    if (!selectedStudent) return showMessage("Select a student first", "error")
-    if (!scheduleForm.title.trim()) return showMessage("Session title is required", "error")
-    if (!scheduleForm.sessionType.trim()) return showMessage("Session type is required", "error")
-    if (!scheduleForm.date) return showMessage("Date is required", "error")
-    if (!scheduleForm.startTime) return showMessage("Start time is required", "error")
-
-    try {
-      setIsSaving(true)
-      await addSchedule(selectedStudent, {
-        ...scheduleForm,
-        title: scheduleForm.title.trim(),
-        sessionType: scheduleForm.sessionType.trim()
-      })
-      showMessage("Academic schedule pushed.", "success")
-      setScheduleForm({ title: "", sessionType: "class", date: "", startTime: "", joinLink: "" })
-    } catch {
-      showMessage("Could not push schedule.", "error")
     } finally {
       setIsSaving(false)
     }
@@ -305,14 +298,14 @@ export default function TeacherStudentsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedStudent("")}
-              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 sm:top-[80px]"
+              className="fixed inset-0 top-[80px] left-0 md:left-[16rem] bg-slate-900/20 backdrop-blur-sm z-40"
             />
             <motion.div
               initial={{ x: "100%", opacity: 0.5 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "100%", opacity: 0 }}
               transition={{ type: "spring", stiffness: 350, damping: 35 }}
-              className="fixed right-0 top-0 sm:top-[80px] bottom-0 w-full sm:max-w-2xl bg-[#F4F5F7] border-l border-slate-200/60 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.08)] z-50 flex flex-col overflow-hidden"
+              className="fixed right-0 top-[80px] bottom-0 w-full sm:max-w-2xl bg-[#F4F5F7] border-l border-slate-200/60 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.08)] z-50 flex flex-col overflow-hidden"
             >
             <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-8 pb-8 pt-6 sm:pt-8">
               <div className="mb-8 flex items-start justify-between gap-4">
@@ -413,7 +406,7 @@ export default function TeacherStudentsPage() {
                   )}
 
                   {/* Action Forms Grid */}
-                  <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     {/* Assignment Form */}
                     <Card className="rounded-[28px] border-0 bg-white shadow-sm overflow-hidden">
                       <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
@@ -518,81 +511,9 @@ export default function TeacherStudentsPage() {
                       </CardContent>
                     </Card>
 
-                    {/* Schedule Form */}
-                    <Card className="rounded-[28px] border-0 bg-white shadow-sm overflow-hidden">
-                      <div className="p-6 pb-4 border-b border-slate-100 bg-emerald-50/30">
-                        <h3 className="text-[16px] font-bold text-slate-800 flex items-center gap-2">
-                          <CalendarClock className="w-5 h-5 text-emerald-500" /> Push Schedule
-                        </h3>
-                      </div>
-                      <CardContent className="p-6 space-y-4">
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Session Title</label>
-                          <Input placeholder="e.g. Review" value={scheduleForm.title} onChange={e => setScheduleForm({ ...scheduleForm, title: e.target.value })} className="h-[42px] rounded-[16px] border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 shadow-sm px-4 placeholder:text-slate-400" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Session Type</label>
-                          <select
-                            value={scheduleForm.sessionType}
-                            onChange={e => setScheduleForm({ ...scheduleForm, sessionType: e.target.value })}
-                            className="w-full h-[42px] rounded-[16px] border border-gray-200 bg-white font-medium text-[14px] px-4 text-slate-900 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300 shadow-sm"
-                          >
-                            <option value="class">Class</option>
-                            <option value="workshop">Workshop</option>
-                            <option value="training">Training</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Date</label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full h-[42px] rounded-[16px] justify-start text-left font-medium border-gray-200 bg-white transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-slate-900 data-[state=open]:bg-gray-50 data-[state=open]:text-slate-900 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black shadow-sm px-4",
-                                  !scheduleForm.date && "text-gray-400 font-normal"
-                                )}
-                              >
-                                <CalendarIcon className="mr-3 h-[18px] w-[18px] text-slate-400 shrink-0" />
-                                {scheduleForm.date ? (
-                                  <span>{format(new Date(scheduleForm.date + 'T12:00:00Z'), "PPP")}</span>
-                                ) : (
-                                  <span>Pick a date...</span>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 shadow-xl" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={scheduleForm.date ? new Date(scheduleForm.date + 'T12:00:00Z') : undefined}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    setScheduleForm({...scheduleForm, date: format(date, 'yyyy-MM-dd')});
-                                  }
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-gray-700 block mb-1.5">Start Time</label>
-                          <Input
-                            type="time"
-                            value={scheduleForm.startTime}
-                            onChange={e => setScheduleForm({ ...scheduleForm, startTime: e.target.value })}
-                            className="h-[42px] rounded-[16px] border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 shadow-sm px-4"
-                          />
-                        </div>
-                        <Button className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-[15px] shadow-sm transition-all mt-2" onClick={handleSchedulePush} disabled={isSaving}>
-                          <Send className="w-4 h-4 mr-2" /> Push Session
-                        </Button>
-                      </CardContent>
-                    </Card>
 
                     {/* Mentor Note */}
-                    <Card className="sm:col-span-2 rounded-[28px] border-0 bg-white shadow-sm overflow-hidden">
+                    <Card className="rounded-[28px] border-0 bg-white shadow-sm overflow-hidden">
                       <div className="p-6 pb-4 border-b border-slate-100 bg-pink-50/30">
                         <h3 className="text-[16px] font-bold text-slate-800 flex items-center gap-2">
                           <UserCheck className="w-5 h-5 text-pink-500" /> Mentorship & Feedback

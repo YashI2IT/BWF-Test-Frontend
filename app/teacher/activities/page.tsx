@@ -245,10 +245,10 @@ export default function ActivitiesPage() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
           {/* Left Column - Assign Form */}
-          <div className="xl:col-span-4 xl:sticky xl:top-[120px] xl:self-start xl:z-10">
-            <div className="bg-white rounded-3xl flex flex-col animate-fade-in shadow-sm xl:max-h-[calc(100vh-140px)] overflow-hidden">
+          <div className="lg:col-span-4 lg:sticky lg:top-[104px] lg:self-start lg:max-h-[calc(100vh-128px)] flex flex-col min-h-0">
+            <div className="bg-white rounded-3xl flex flex-col flex-1 min-h-0 animate-fade-in shadow-sm overflow-hidden">
               <div className="p-8 pb-6 border-b border-slate-100 shrink-0">
                 <h2 className="text-xl md:text-2xl font-bold text-black mb-2">
                   Assign Task
@@ -260,12 +260,12 @@ export default function ActivitiesPage() {
               
               <motion.form 
                 onSubmit={handleSubmit} 
-                className="flex flex-col flex-1 overflow-hidden"
+                className="flex flex-col flex-1 min-h-0"
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
               >
-                <div className="flex-1 overflow-y-auto p-8 pt-6 space-y-5 custom-scrollbar">
+                <div className="flex-1 p-8 pt-6 space-y-5 overflow-y-auto scrollable-hide min-h-0">
                 <motion.div variants={itemVariants}>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Student</label>
                   <Select value={formData.assignedTo} onValueChange={value => setFormData({...formData, assignedTo: value})}>
@@ -424,7 +424,7 @@ export default function ActivitiesPage() {
           </div>
 
           {/* Right Column - Task List */}
-          <div className="xl:col-span-8">
+          <div className="lg:col-span-8">
             <AnimatePresence mode="wait">
               {loading ? (
                 <motion.div
@@ -553,15 +553,16 @@ export default function ActivitiesPage() {
 
       {/* Edit Task Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="rounded-[32px] w-[95vw] sm:max-w-[500px] p-6 border-0 shadow-2xl">
-          <DialogHeader className="mb-2">
+        <DialogContent className="rounded-[32px] w-[95vw] sm:max-w-[500px] p-0 border-0 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
             <DialogTitle className="text-xl md:text-2xl font-bold text-slate-900">Edit Task</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+          <form onSubmit={handleUpdate} className="flex flex-col overflow-hidden flex-1">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Student</label>
               <Select value={editFormData.assignedTo} onValueChange={v => setEditFormData({...editFormData, assignedTo: v})}>
-                <SelectTrigger className="h-10 rounded-xl border-gray-200 bg-white font-medium text-[14px] focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300">
+                <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-white font-medium text-[14px] focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300">
                   <SelectValue placeholder="Select a student" />
                 </SelectTrigger>
                 <SelectContent side="bottom" className="rounded-2xl border-gray-100 shadow-xl max-h-[250px]">
@@ -582,16 +583,16 @@ export default function ActivitiesPage() {
                 value={editFormData.title} 
                 onChange={e => setEditFormData({...editFormData, title: e.target.value})} 
                 required 
-                className="h-10 rounded-xl border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                className="h-11 rounded-xl border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
               />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Description</label>
-              <Input 
+              <Textarea
                 value={editFormData.description} 
                 onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
                 required 
-                className="h-10 rounded-xl border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                className="min-h-[90px] rounded-xl border-gray-200 bg-white font-medium text-[14px] focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 resize-none py-3"
               />
             </div>
             <div>
@@ -601,7 +602,7 @@ export default function ActivitiesPage() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-10 rounded-xl border-gray-200 bg-white justify-start text-left font-medium text-[14px] focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-slate-900 data-[state=open]:bg-gray-50 data-[state=open]:text-slate-900 px-4",
+                      "w-full h-11 rounded-xl border-gray-200 bg-white justify-start text-left font-medium text-[14px] focus:ring-1 focus:ring-black focus:border-black transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-slate-900 data-[state=open]:bg-gray-50 data-[state=open]:text-slate-900 px-4",
                       !editFormData.dueDate && "text-gray-400 font-normal"
                     )}
                   >
@@ -631,7 +632,7 @@ export default function ActivitiesPage() {
               <button
                 type="button"
                 onClick={() => editFileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100/50 text-[13px] font-bold text-gray-600 transition-colors"
+                className="w-full flex items-center justify-center gap-2 h-11 rounded-xl border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100/50 text-[13px] font-bold text-gray-600 transition-colors"
               >
                 <Paperclip className="w-4 h-4" /> {editFilePreview ? 'Change Attached File' : 'Attach File (Image / PDF)'}
               </button>
@@ -653,28 +654,50 @@ export default function ActivitiesPage() {
                 }}
               />
 
+              {/* Compact file preview — no inline PDF embed */}
               {editFilePreview && (
-                <div className="relative mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50/50 flex items-center justify-center p-2">
-                  {editFilePreview.type === 'image' ? (
-                    <img src={editFilePreview.url} alt="Preview" className="w-full h-auto object-contain max-h-[400px] rounded-lg bg-white" />
-                  ) : (
-                    <embed src={`${editFilePreview.url}#toolbar=0&navpanes=0&scrollbar=0`} type="application/pdf" className="w-full h-[400px] rounded-lg bg-white" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditFilePreview(null);
-                      setEditAttachedFile(null);
-                      if (editFileInputRef.current) editFileInputRef.current.value = '';
-                    }}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 shadow-sm border border-gray-200 flex items-center justify-center text-gray-500 hover:text-rose-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                <div className="mt-3 flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-slate-800 truncate">
+                        {editAttachedFile ? editAttachedFile.name : editFilePreview.type === 'pdf' ? 'Attached PDF' : 'Attached Image'}
+                      </p>
+                      <p className="text-[12px] text-slate-400 font-medium">
+                        {editFilePreview.type === 'pdf' ? 'PDF Document' : 'Image'}
+                        {editAttachedFile && ` · ${(editAttachedFile.size / 1024).toFixed(0)} KB`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={editFilePreview.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+                      title="Open file"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditFilePreview(null);
+                        setEditAttachedFile(null);
+                        if (editFileInputRef.current) editFileInputRef.current.value = '';
+                      }}
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:text-rose-500 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-            <DialogFooter className="mt-2 border-t border-slate-100 pt-4">
+            </div>
+            <DialogFooter className="px-6 py-4 border-t border-slate-100 shrink-0 bg-white flex gap-2">
               <Button variant="ghost" onClick={() => setEditOpen(false)} className="rounded-full h-10 font-bold hover:bg-slate-100 text-slate-600 px-5 text-[14px]" type="button">Cancel</Button>
               <Button 
                 type="submit"

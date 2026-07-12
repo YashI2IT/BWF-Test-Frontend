@@ -432,7 +432,7 @@ export default function TeacherDashboardPage() {
     const label =
       timeRange === 'Year'
         ? `completion rate (${progressData.length} months)`
-        : `completion rate (${progressData.length} months)`;
+        : `completion rate (this month)`;
 
     return {
       display: String(completionRate),
@@ -508,9 +508,9 @@ export default function TeacherDashboardPage() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[150px] rounded-2xl p-2">
-                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onClick={() => setTimeRange('Week')}>Week</DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onClick={() => setTimeRange('Month')}>Month</DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onClick={() => setTimeRange('Year')}>Year</DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onSelect={() => setTimeRange('Week')}>Week</DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onSelect={() => setTimeRange('Month')}>Month</DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100" onSelect={() => setTimeRange('Year')}>Year</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
