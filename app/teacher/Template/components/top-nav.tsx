@@ -241,7 +241,8 @@ export function TopNav() {
               </div>
               
               <DropdownMenuItem 
-                onSelect={() => setIsProfileModalOpen(true)}
+                onSelect={(e) => e.preventDefault()}
+                onClick={() => setIsProfileModalOpen(true)}
                 className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
@@ -255,7 +256,8 @@ export function TopNav() {
               </DropdownMenuItem>
               
               <DropdownMenuItem 
-                onSelect={() => setIsWidgetModalOpen(true)}
+                onSelect={(e) => e.preventDefault()}
+                onClick={() => setIsWidgetModalOpen(true)}
                 className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
