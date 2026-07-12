@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import api from '@/app/lib/api';
 
 type Status = 'OPEN' | 'RESOLVED' | 'ESCALATED';
-type ReporterRole = 'Student' | 'Teacher';
+type ReporterRole = 'student' | 'staff';
 
 interface ComplaintTimeline {
   reported: string;
@@ -59,7 +59,7 @@ interface Complaint {
 
 const STATUS_OPTIONS = ['All', 'OPEN', 'RESOLVED', 'ESCALATED'];
 const PRIORITY_OPTIONS = ['All', 'Low', 'Medium', 'High'];
-const ROLE_OPTIONS = ['All', 'Student', 'Teacher'];
+const ROLE_OPTIONS = ['All', 'student', 'staff'];
 
 const formatDate = (dateTime: string) => {
   const date = new Date(dateTime);
