@@ -80,8 +80,9 @@ export function TopNav() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("role");
+    window.location.href = "/auth/login";
   };
 
   if (!mounted) {
