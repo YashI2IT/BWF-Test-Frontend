@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/app/teacher/Template/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/teacher/Template/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/app/teacher/Template/components/ui/alert-dialog';
-import { getMentorNotes, getStudents, getTeacherProfile } from '../service';
+import { getMentorNotes, getTeacherDashboard, getTeacherProfile } from '../service';
 import api from '@/app/lib/api';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { PenLine, Quote, Loader2, BookOpen, MoreVertical, Edit2, Trash2 } from 'lucide-react';
@@ -67,28 +67,27 @@ export default function NotesPage() {
   const [deletingNoteId, setDeletingNoteId] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-  }, []);
-
   const loadData = async () => {
     try {
-      const [notesRes, studentsRes, profileRes] = await Promise.all([
+      const [notesRes, dashboardRes, profileRes] = await Promise.all([
         getMentorNotes(),
-        getStudents(),
+        getTeacherDashboard(),
         getTeacherProfile()
       ]);
       setNotes(notesRes);
-      setStudents(studentsRes);
+      setStudents(dashboardRes?.students || []);
       if (profileRes?.name) setMentorName(profileRes.name);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to load notes.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData();
+  }, []);
 
   const handleSubmit = async () => {
     if (!selectedStudent || !message.trim()) return;
@@ -103,8 +102,7 @@ export default function NotesPage() {
       setSelectedStudent('');
       toast({ title: 'Success', description: 'Mentor note added successfully.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to save note.', variant: 'destructive' });
     } finally {
       setSubmitting(false);
@@ -127,8 +125,7 @@ export default function NotesPage() {
       setEditMessage('');
       toast({ title: 'Success', description: 'Mentor note updated successfully.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to update note.', variant: 'destructive' });
     } finally {
       setUpdating(false);
@@ -149,8 +146,7 @@ export default function NotesPage() {
       setDeletingNoteId('');
       toast({ title: 'Success', description: 'Mentor note deleted.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete note.', variant: 'destructive' });
     } finally {
       setDeleting(false);
@@ -282,7 +278,7 @@ export default function NotesPage() {
                 <BookOpen className="w-8 h-8 text-slate-300" />
               </div>
               <h3 className="text-lg font-bold text-slate-800 mb-2">No Mentor Notes Yet</h3>
-              <p className="text-slate-500 font-medium max-w-sm">You haven&apos;t recorded any private observations yet. Click "Write Note" to begin tracking.</p>
+              <p className="text-slate-500 font-medium max-w-sm">You haven&apos;t recorded any private observations yet. Click &quot;Write Note&quot; to begin tracking.</p>
             </motion.div>
           ) : (
             <motion.div
@@ -347,7 +343,7 @@ export default function NotesPage() {
                           </span>
                           <Quote className="absolute left-0 top-0.5 w-4 h-4 text-slate-200 fill-slate-100" />
                           <p className="text-slate-600 text-[15px] leading-relaxed font-medium italic break-words">
-                            "{note.message}"
+                            &quot;{note.message}&quot;
                           </p>
                         </div>
                       </div>
@@ -411,7 +407,7 @@ export default function NotesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl text-rose-600">Delete Permanently?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 mt-2 font-medium">
-              This action cannot be undone. This will permanently remove the mentor note from the student's record.
+              This action cannot be undone. This will permanently remove the mentor note from the student&apos;s record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex gap-3">

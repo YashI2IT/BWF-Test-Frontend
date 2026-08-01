@@ -18,6 +18,8 @@ interface Notice {
   category: "events" | "academic" | "welfare" | "general";
   authorRole?: string;
   deadline?: string;
+  imageUrl?: string;
+  mediaType?: 'image' | 'video' | 'pdf';
 }
 
 interface NoticeContextValue {
@@ -26,7 +28,8 @@ interface NoticeContextValue {
   markAsRead: (id: string) => void;
   markAllRead: () => void;
   deleteNotice: (id: string) => void;
-  fetchNotices: () => void;
+  fetchNotices: (silent?: boolean) => void;
+  isLoading: boolean;
 }
 
 const NoticeContext = createContext<NoticeContextValue | null>(null);
@@ -34,11 +37,16 @@ const NoticeContext = createContext<NoticeContextValue | null>(null);
 export function NoticeProvider({ children }: { children: React.ReactNode }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const { authId } = useProfile();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchNotices = useCallback(async () => {
+  const fetchNotices = useCallback(async (silent = false) => {
     if (!authId) return;
+    if (!silent) setIsLoading(true);
     try {
-      const res = await api.get(`/student/noticeboard/${authId}`);
+      const [res] = await Promise.all([
+        api.get(`/student/noticeboard/me`),
+        silent ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, 1000))
+      ]);
       // Map backend fields to frontend if necessary
       const mapped = (res.data.notices || []).map((n: any) => ({
         ...n,
@@ -47,31 +55,37 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       }));
       setNotices(mapped);
     } catch (error) {
-      console.error("Failed to fetch notices", error);
+      // Fail silently
+    } finally {
+      if (!silent) setIsLoading(false);
     }
   }, [authId]);
 
   useEffect(() => {
     fetchNotices();
+    const intervalId = setInterval(() => {
+      fetchNotices(true);
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, [fetchNotices]);
 
   const unreadCount = notices.filter(n => !n.isRead).length;
 
   const markAsRead = useCallback(async (id: string) => {
     try {
-      await api.post(`/student/noticeboard/${authId}/notices/${id}/read`);
+      await api.post(`/student/noticeboard/me/notices/${id}/read`);
       setNotices(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
     } catch (error) {
-      console.error("Failed to mark read", error);
+      // Fail silently
     }
   }, [authId]);
 
   const markAllRead = useCallback(async () => {
     try {
-      await api.post(`/student/noticeboard/${authId}/read-all`);
+      await api.post(`/student/noticeboard/me/read-all`);
       setNotices(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
-      console.error("Failed to mark all read", error);
+      // Fail silently
     }
   }, [authId]);
 
@@ -81,7 +95,7 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <NoticeContext.Provider value={{ notices, unreadCount, markAsRead, markAllRead, deleteNotice, fetchNotices }}>
+    <NoticeContext.Provider value={{ notices, unreadCount, markAsRead, markAllRead, deleteNotice, fetchNotices, isLoading }}>
       {children}
     </NoticeContext.Provider>
   );

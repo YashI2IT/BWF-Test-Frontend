@@ -1,18 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/app/teacher/Template/components/ui/card';
 import { Button } from '@/app/teacher/Template/components/ui/button';
 import { Badge } from '@/app/teacher/Template/components/ui/badge';
 import { ScrollArea } from '@/app/teacher/Template/components/ui/scroll-area';
 import { Input } from '@/app/teacher/Template/components/ui/input';
 import { Textarea } from '@/app/teacher/Template/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/teacher/Template/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/teacher/Template/components/ui/select';
 import {
   Share,
   Maximize2,
-  MoreHorizontal,
   X,
   CalendarDays,
   Clock,
@@ -33,9 +30,6 @@ import {
 import api from '@/app/lib/api';
 import { toast } from '@/app/teacher/Template/components/ui/use-toast';
 import { format, startOfWeek, addDays, isSameDay, parseISO, isSameWeek, getDay } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '@/app/teacher/Template/components/ui/popover';
-import { Calendar } from '@/app/teacher/Template/components/ui/calendar';
-import { cn } from '@/app/teacher/Template/lib/utils';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 const containerVariants: Variants = {
@@ -78,86 +72,7 @@ interface ScheduleItem {
   comments?: ScheduleComment[];
 }
 
-const CustomTimePicker = ({ value, onChange, placeholder = "Select time" }: { value: string, onChange: (val: string) => void, placeholder?: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [h, m] = value ? value.split(':') : ['', ''];
 
-  const hours = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }).map((_, i) => i.toString().padStart(2, '0'));
-
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full h-[42px] rounded-[16px] justify-start text-left font-medium border-slate-200/60 bg-slate-50/50 hover:bg-slate-100/80 transition-all shadow-sm px-4",
-            !value && "text-slate-400"
-          )}
-        >
-          <Clock className="mr-2.5 h-[16px] w-[16px] text-slate-500" />
-          {value ? (
-            <span>
-              {(() => {
-                const hour = parseInt(h);
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                return `${displayHour.toString().padStart(2, '0')}:${m} ${ampm}`;
-              })()}
-            </span>
-          ) : (
-            <span>{placeholder}</span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-4 rounded-[24px] border-slate-200 shadow-xl bg-white z-[100] overflow-hidden" align="start">
-        <div className="flex gap-4 h-[240px]">
-          <div className="flex flex-col gap-2 w-[64px]">
-            <span className="text-[11px] font-bold text-slate-400 text-center uppercase tracking-wider">Hours</span>
-            <div className="h-[210px] overflow-y-auto [&::-webkit-scrollbar]:hidden">
-              <div className="flex flex-col gap-1">
-                {hours.map(hour => (
-                  <button
-                    key={hour}
-                    type="button"
-                    onClick={() => onChange(`${hour}:${m || '00'}`)}
-                    className={cn(
-                      "py-2 rounded-xl text-[14px] font-bold transition-all text-center",
-                      h === hour ? "bg-slate-900 text-white shadow-md" : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    {hour}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="w-[1px] bg-slate-100 my-2"></div>
-          <div className="flex flex-col gap-2 w-[64px]">
-            <span className="text-[11px] font-bold text-slate-400 text-center uppercase tracking-wider">Mins</span>
-            <div className="h-[210px] overflow-y-auto [&::-webkit-scrollbar]:hidden">
-              <div className="flex flex-col gap-1">
-                {minutes.map(minute => (
-                  <button
-                    key={minute}
-                    type="button"
-                    onClick={() => onChange(`${h || '09'}:${minute}`)}
-                    className={cn(
-                      "py-2 rounded-xl text-[14px] font-bold transition-all text-center",
-                      m === minute ? "bg-slate-900 text-white shadow-md" : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    {minute}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
 
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
@@ -187,32 +102,28 @@ export default function SchedulePage() {
     const newPreviews: { [key: string]: string } = {};
     attachments.forEach(file => {
       if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-        newPreviews[file.name] = filePreviews[file.name] || URL.createObjectURL(file);
+        newPreviews[file.name] = URL.createObjectURL(file);
       }
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFilePreviews(newPreviews);
   }, [attachments]);
   const [newComment, setNewComment] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [activeTab, setActiveTab] = useState('comments');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [selectedMobileDay, setSelectedMobileDay] = useState<Date>(new Date());
 
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 })); // Start on Monday
 
-  useEffect(() => {
-    fetchSchedules();
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await api.get('/teacher/profile');
       setProfile(res.data);
-    } catch (err) {
-      console.error('Error fetching profile', err);
+    } catch {
+      console.error('Error fetching profile');
     } finally {
       setIsProfileLoading(false);
     }
@@ -222,13 +133,18 @@ export default function SchedulePage() {
     try {
       const res = await api.get('/teacher/schedule');
       setSchedules(res.data);
-    } catch (error) {
-      console.error('Error fetching schedules', error);
+    } catch {
       toast({ title: 'Error fetching schedule', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSchedules();
+    fetchProfile();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,9 +183,8 @@ export default function SchedulePage() {
       setSchedules([...schedules, res.data]);
       closeAddModal();
       toast({ title: 'Schedule added successfully' });
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Failed to add schedule', variant: 'destructive' });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to add class.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -299,8 +214,7 @@ export default function SchedulePage() {
       setSchedules(schedules.filter(s => s._id !== id));
       if (selectedEventId === id) setSelectedEventId(null);
       toast({ title: 'Schedule deleted' });
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Failed to delete schedule', variant: 'destructive' });
     }
   };
@@ -314,9 +228,8 @@ export default function SchedulePage() {
       // The API returns the updated schedule, so we update it in the state
       setSchedules(schedules.map(s => s._id === selectedEventId ? res.data : s));
       setNewComment('');
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Failed to post comment', variant: 'destructive' });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to post comment.', variant: 'destructive' });
     } finally {
       setIsPostingComment(false);
     }
@@ -335,8 +248,7 @@ export default function SchedulePage() {
           text: shareText,
         });
         toast({ title: 'Shared successfully!' });
-      } catch (error) {
-        console.error('Error sharing', error);
+      } catch {
       }
     } else {
       // Fallback for browsers that don't support navigator.share

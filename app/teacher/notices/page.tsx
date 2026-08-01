@@ -20,6 +20,8 @@ interface Notice {
   authorName?: string;
   publishedDate: string;
   imageUrl?: string;
+  mediaType?: 'image' | 'video' | 'pdf';
+  canManage?: boolean;
 }
 
 const containerVariants: Variants = {
@@ -97,7 +99,8 @@ function NoticeCard({
                 </button>
               </>
             ) : (
-              <>
+              notice.canManage !== false && (
+                <>
                 <button
                   onClick={() => {
                     setEditData({ title: notice.title, body: notice.body, category: notice.category });
@@ -117,7 +120,7 @@ function NoticeCard({
                   <Trash2 className="w-4 h-4" />
                 </button>
               </>
-            )}
+            ))}
           </div>
         </div>
         
@@ -195,7 +198,13 @@ function NoticeCard({
                 
                 {editImagePreview ? (
                   <div className="relative mt-4 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center min-h-[100px]">
-                    <img src={editImagePreview} alt="Preview" className="w-full h-auto object-contain max-h-[400px]" />
+                    {editImageFile?.type.startsWith('video/') || (notice.mediaType === 'video' && !editImageFile) ? (
+                      <video src={editImagePreview} controls className="w-full h-auto object-contain max-h-[400px]" />
+                    ) : editImageFile?.type === 'application/pdf' || (notice.mediaType === 'pdf' && !editImageFile) ? (
+                      <iframe src={editImagePreview} className="w-full h-[400px] rounded-lg" title="PDF Preview" />
+                    ) : (
+                      <img src={editImagePreview} alt="Preview" className="w-full h-auto object-contain max-h-[400px]" />
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -215,7 +224,7 @@ function NoticeCard({
                     onClick={() => fileInputRef.current?.click()}
                     className="mt-4 flex items-center justify-center w-full gap-2 py-4 border-2 border-dashed border-slate-200 bg-slate-50 rounded-[16px] text-slate-500 font-medium text-[13px] hover:bg-slate-100 hover:border-slate-300 transition-all"
                   >
-                    <ImageIcon className="w-4 h-4" /> Attach Image (Optional)
+                    <ImageIcon className="w-4 h-4" /> Attach Media (Optional)
                   </button>
                 )}
               </>
@@ -224,7 +233,21 @@ function NoticeCard({
                 <p className="text-slate-600 leading-relaxed font-medium text-[14px] whitespace-pre-wrap">{notice.body}</p>
                 {notice.imageUrl && (
                   <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
-                    <img src={notice.imageUrl} alt="Notice media" className="w-full h-auto object-contain max-h-[400px]" />
+                    {notice.mediaType === 'video' ? (
+                      <video src={notice.imageUrl} controls className="w-full h-auto object-contain max-h-[400px]" />
+                    ) : notice.mediaType === 'pdf' ? (
+                      <div className="w-full h-[400px] flex flex-col">
+                        <iframe src={notice.imageUrl} className="w-full flex-1 rounded-t-lg" title="PDF Document" />
+                        <div className="bg-slate-100 p-3 rounded-b-lg flex justify-between items-center">
+                          <span className="text-sm font-medium text-slate-700">PDF Document</span>
+                          <a href={notice.imageUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-all">
+                            Open Fullscreen
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={notice.imageUrl} alt="Notice media" className="w-full h-auto object-contain max-h-[400px]" />
+                    )}
                   </div>
                 )}
               </>
@@ -263,8 +286,14 @@ export default function NoticesPage() {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData();
+    const intervalId = setInterval(() => {
+      loadData(false);
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, [loadData]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -404,7 +433,7 @@ export default function NoticesPage() {
                         <label className="text-sm font-medium text-gray-700 block mb-1.5">Notice Title</label>
                         <Input 
                           value={formData.title} 
-                          onChange={e => setFormData({...formData, title: e.target.value})} 
+                          onChange={e => setFormData(prev => ({...prev, title: e.target.value}))} 
                           placeholder="e.g. Midterm Exam Schedule" 
                           required 
                           className="h-12 rounded-full px-6 border-gray-200 bg-white focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 font-medium text-[14px]"
@@ -413,9 +442,8 @@ export default function NoticesPage() {
                       <div className="space-y-2 shrink-0">
                         <label className="text-sm font-medium text-gray-700 block mb-1.5">Category</label>
                         <Select 
-                          required
                           value={formData.category} 
-                          onValueChange={value => setFormData({...formData, category: value})}
+                          onValueChange={value => setFormData(prev => ({...prev, category: value}))}
                         >
                           <SelectTrigger className="h-12 rounded-full px-6 border-gray-200 bg-white hover:border-gray-300 focus:ring-1 focus:ring-black focus:border-black transition-colors font-medium text-[14px] text-slate-700 data-[state=open]:bg-gray-50 data-[state=open]:text-slate-900">
                             <SelectValue placeholder="Select a category..." />
@@ -434,7 +462,7 @@ export default function NoticesPage() {
                           <Textarea 
                             className="flex-1 min-h-[150px] w-full rounded-[28px] border-gray-200 bg-white px-6 py-5 pb-14 text-[14px] font-medium focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300 resize-y placeholder:text-slate-400 text-slate-700 leading-relaxed shadow-none custom-scrollbar"
                             value={formData.body} 
-                            onChange={e => setFormData({...formData, body: e.target.value})} 
+                            onChange={e => setFormData(prev => ({...prev, body: e.target.value}))} 
                             placeholder="Write your broadcast message here..." 
                             required 
                           />
@@ -444,7 +472,7 @@ export default function NoticesPage() {
                               onClick={() => fileInputRef.current?.click()}
                               className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 shadow-sm rounded-full hover:bg-slate-50 text-[12px] font-bold text-slate-600 transition-colors"
                             >
-                              <ImageIcon className="w-4 h-4" /> Attach Image
+                              <ImageIcon className="w-4 h-4" /> Attach Media
                             </button>
                           </div>
                         </div>
@@ -453,7 +481,7 @@ export default function NoticesPage() {
                           type="file"
                           ref={fileInputRef}
                           className="hidden"
-                          accept="image/*"
+                          accept="image/*,video/*,application/pdf"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -465,7 +493,13 @@ export default function NoticesPage() {
 
                         {imagePreview && (
                           <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50/50 flex items-center justify-center min-h-[100px] shrink-0">
-                            <img src={imagePreview} alt="Preview" className="w-full h-auto object-contain max-h-40" />
+                            {imageFile?.type.startsWith('video/') ? (
+                              <video src={imagePreview} controls className="w-full h-auto object-contain max-h-40" />
+                            ) : imageFile?.type === 'application/pdf' ? (
+                              <iframe src={imagePreview} className="w-full h-[250px] rounded-lg" title="PDF Preview" />
+                            ) : (
+                              <img src={imagePreview} alt="Preview" className="w-full h-auto object-contain max-h-40" />
+                            )}
                             <button
                               type="button"
                               onClick={() => {

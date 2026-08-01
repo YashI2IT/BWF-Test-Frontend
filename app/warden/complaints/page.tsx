@@ -1,16 +1,30 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Search, AlertCircle, Plus, CheckCircle2, ArrowUp, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, type Variants } from 'framer-motion';
 import { Card, CardContent } from '@/app/warden/Template/components/ui/card';
 import { Button } from '@/app/warden/Template/components/ui/button';
-import { Badge } from '@/app/warden/Template/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/warden/Template/components/ui/tabs';
+
+import { Tabs, TabsList, TabsTrigger } from '@/app/warden/Template/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
 import { Input } from '@/app/warden/Template/components/ui/input';
 import { Textarea } from '@/app/warden/Template/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/app/warden/Template/components/ui/alert-dialog';
+import { Skeleton } from '@/app/warden/Template/components/ui/skeleton';
 import api from '@/app/lib/api';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }
+};
 
 type Status = 'OPEN' | 'RESOLVED' | 'ESCALATED';
 
@@ -137,7 +151,7 @@ export default function ComplaintsPage() {
     } catch (error) {
       console.error("Failed to fetch complaints:", error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 1000);
     }
   };
 
@@ -179,7 +193,7 @@ export default function ComplaintsPage() {
     } catch (error) {
       console.error("Failed to fetch history:", error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 1000);
     }
   };
 
@@ -286,89 +300,142 @@ export default function ComplaintsPage() {
     }
   };
 
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen text-[13px]">
-      <div className="flex items-center justify-between mb-6 animate-fade-in">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Warden Complaints</h1>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-              <span>Home</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-indigo-500 font-semibold">Complaints</span>
-            </div>
-            
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
-              <TabsList className="bg-slate-100 rounded-2xl h-10 p-1">
-                <TabsTrigger value="active" className="rounded-xl px-4 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Active List</TabsTrigger>
-                <TabsTrigger value="history" className="rounded-xl px-4 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Full History</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+        <div>
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+          >
+            Complaints & Feedback
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-[15px] text-slate-500 mt-2 font-medium"
+          >
+            Manage and resolve student complaints and feedback.
+          </motion.p>
         </div>
       </div>
 
-      <Card className="rounded-4xl border border-slate-200/60 bg-white shadow-none overflow-hidden">
+      <motion.div variants={itemVariants}>
+      <Card className="rounded-4xl border border-slate-200/60 bg-white shadow-none">
         <div className="lg:p-6 border-b border-slate-100">
-          <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr] xl:items-end">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col xl:flex-row xl:items-end gap-4 w-full">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search complaints by title, reporter, or location"
-                className="pl-12 h-12 rounded-2xl border-slate-200 bg-slate-50 text-sm"
+                className="pl-11 h-11 rounded-full border-gray-200 bg-white shadow-sm focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black hover:border-gray-300 text-sm transition-colors text-ellipsis w-full"
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-2">Status</p>
+            <div className="flex flex-wrap md:flex-nowrap items-end gap-3 w-full xl:w-auto">
+              <div className="w-full sm:w-[120px]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Status</p>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm text-slate-600">
+                  <SelectTrigger className="w-full h-11 rounded-full border-gray-200 bg-white shadow-sm px-4 text-sm font-semibold text-slate-700 hover:border-gray-300 transition-colors">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                  <SelectContent className="rounded-3xl border-slate-200 shadow-xl p-2">
                     {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                      <SelectItem key={option} value={option} className="rounded-2xl py-2 cursor-pointer font-medium text-slate-700 focus:bg-slate-100 focus:text-slate-900 transition-colors duration-200">
+                        {option}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-2">Priority</p>
+              <div className="w-full sm:w-[120px]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Priority</p>
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm text-slate-600">
+                  <SelectTrigger className="w-full h-11 rounded-full border-gray-200 bg-white shadow-sm px-4 text-sm font-semibold text-slate-700 hover:border-gray-300 transition-colors">
                     <SelectValue placeholder="Priority" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                  <SelectContent className="rounded-3xl border-slate-200 shadow-xl p-2">
                     {PRIORITY_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                      <SelectItem key={option} value={option} className="rounded-2xl py-2 cursor-pointer font-medium text-slate-700 focus:bg-slate-100 focus:text-slate-900 transition-colors duration-200">
+                        {option}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-2">Role</p>
+              <div className="w-full sm:w-[120px]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Role</p>
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm text-slate-600">
+                  <SelectTrigger className="w-full h-11 rounded-full border-gray-200 bg-white shadow-sm px-4 text-sm font-semibold text-slate-700 hover:border-gray-300 transition-colors">
                     <SelectValue placeholder="Reporter" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                  <SelectContent className="rounded-3xl border-slate-200 shadow-xl p-2">
                     {ROLE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                      <SelectItem key={option} value={option} className="rounded-2xl py-2 cursor-pointer font-medium text-slate-700 focus:bg-slate-100 focus:text-slate-900 transition-colors duration-200">
+                        {option}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="w-full md:w-auto mt-2 md:mt-0">
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full min-w-0" suppressHydrationWarning>
+                  <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-11 p-1 flex items-center w-full md:w-fit max-w-full overflow-x-auto min-w-0 hide-scrollbar">
+                    <TabsTrigger value="active" className="relative rounded-full h-full px-5 text-xs font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                      {viewMode === 'active' && (
+                        <motion.div
+                          layoutId="complaints-view-mode-pill"
+                          className="absolute inset-0 bg-white rounded-full shadow-sm"
+                          transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <span className="relative z-10">Active List</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="relative rounded-full h-full px-5 text-xs font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                      {viewMode === 'history' && (
+                        <motion.div
+                          layoutId="complaints-view-mode-pill"
+                          className="absolute inset-0 bg-white rounded-full shadow-sm"
+                          transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <span className="relative z-10">Full History</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
             </div>
           </div>
         </div>
 
-        <CardContent className="pt-4 pb-6 space-y-4">
+        <CardContent className="pt-4 pb-6 space-y-4 bg-slate-50/50">
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex flex-col gap-3 min-w-0 w-full">
+                      <Skeleton className="h-6 w-1/3" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                    <Skeleton className="h-10 w-24 rounded-xl" />
+                  </div>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredComplaints.length === 0 ? (
             <div className="rounded-4xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-slate-500">
@@ -551,6 +618,8 @@ export default function ComplaintsPage() {
           )}
         </CardContent>
       </Card>
+      </motion.div>
+      </motion.div>
 
       {filteredComplaints.length > ITEMS_PER_PAGE && (
         <div className="p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-t border-slate-100 bg-white rounded-b-4xl">

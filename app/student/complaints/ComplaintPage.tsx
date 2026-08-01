@@ -1,6 +1,10 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { SkeletonLoader } from "../components/SkeletonLoader";
 import "../styles/complaints.css";
 import {
   ShieldAlert,
@@ -8,7 +12,6 @@ import {
   CheckCircle2,
   Clock,
   History,
-  UserSquare2,
   X,
   Plus,
   Send,
@@ -16,7 +19,8 @@ import {
   HelpCircle,
   ChevronRight,
 } from "lucide-react";
-import { postComplaints, getComplaints } from "./service";
+import { postComplaints, getComplaints, getCampusActivities } from "./service";
+import { CalendarDays, MapPin } from "lucide-react";
 
 type ComplaintStatus = "open" | "resolved" | "escalated";
 
@@ -85,6 +89,7 @@ const COMPLAINT_CATEGORIES = [
 
 const STATUS_CONFIG: Record<
   ComplaintStatus,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { label: string; icon: any; class: string }
 > = {
   open: { label: "Received", icon: Clock, class: "rc-status--open" },
@@ -105,7 +110,9 @@ export default function ComplaintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "open" | "resolved">(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [campusActivities, setCampusActivities] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"all" | "open" | "resolved" | "activities">(
     "all",
   );
 
@@ -116,21 +123,26 @@ export default function ComplaintsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    fetchComplaints();
-  }, []);
-
   async function fetchComplaints() {
     try {
-      const data = await getComplaints();
+      const [data, activitiesData] = await Promise.all([
+        getComplaints(),
+        getCampusActivities(),
+        new Promise((resolve) => setTimeout(resolve, 1000))
+      ]);
       setComplaints(data.complaints || []);
+      setCampusActivities(activitiesData || []);
       console.log("Fetched complaints:", data);
-    } catch (err) {
+    } catch {
       setError("Unable to load history. Please refresh.");
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchComplaints();
+  }, []);
 
   async function handleSubmit() {
     if (!text.trim()) return;
@@ -167,22 +179,40 @@ export default function ComplaintsPage() {
     return c.status === "resolved";
   });
 
+  if (loading) {
+    return <SkeletonLoader />;
+  }
+
   return (
-    <main className="rc-page">
+    <main className="flex-1 bg-[#F4F5F7] min-h-screen font-sans relative overflow-x-hidden">
+      <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto w-full min-w-0">
       {/* ── HEADER ── */}
-      <header className="rc-header">
-        <div className="rc-header-content">
-          <p className="rc-eyebrow">{mockData.eyebrow}</p>
-          <h1 className="rc-title">{mockData.title}</h1>
-          <p className="rc-subtitle">{mockData.subtitle}</p>
-        </div>
-        {!showForm && (
-          <button className="rc-raise-btn" onClick={() => setShowForm(true)}>
-            <Plus size={20} />
-            New Request / Concern
-          </button>
-        )}
-      </header>
+        <motion.div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6 mt-2 px-4 md:px-0">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              {mockData.title}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2"
+            >
+              {mockData.subtitle}
+            </motion.p>
+          </div>
+          {!showForm && (
+            <button className="rc-raise-btn" onClick={() => setShowForm(true)}>
+              <Plus size={20} />
+              New Request / Concern
+            </button>
+          )}
+        </motion.div>
 
       {/* ── ALERTS ── */}
       {submitted && (
@@ -224,7 +254,7 @@ export default function ComplaintsPage() {
         {/* Left Column: Form / Info */}
         <section className="rc-column-main">
           {showForm ? (
-            <div className="rc-form-container">
+            <div className="rc-form-container rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
               <div className="rc-form-header">
                 <button className="rc-back-btn" onClick={resetForm}>
                   ← Back to My History
@@ -324,7 +354,7 @@ export default function ComplaintsPage() {
               </div>
             </div>
           ) : (
-            <div className="rc-history">
+            <div className="rc-history rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm flex flex-col">
               <div className="rc-history-header">
                 <div className="rc-history-title-group">
                   <History size={20} className="rc-history-icon" />
@@ -349,6 +379,12 @@ export default function ComplaintsPage() {
                   >
                     Resolved
                   </button>
+                  <button
+                    className={`rc-tab ${activeTab === "activities" ? "rc-tab--active" : ""}`}
+                    onClick={() => setActiveTab("activities")}
+                  >
+                    Campus Activities
+                  </button>
                 </div>
               </div>
 
@@ -362,6 +398,37 @@ export default function ComplaintsPage() {
                   <div className="rc-empty-graphic">🕊️</div>
                   <h3>{mockData.emptyTitle}</h3>
                   <p>{mockData.emptyDesc}</p>
+                </div>
+              ) : activeTab === "activities" ? (
+                <div className="rc-list">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {campusActivities.map((a: any) => (
+                    <div key={a._id} className="rc-card rc-card--resolved">
+                      <div className="rc-card-header">
+                        <div className="rc-card-badges">
+                          <span className="rc-badge rc-badge--resolved">
+                            <CalendarDays size={12} />
+                            {a.status.toUpperCase()}
+                          </span>
+                          <span className="rc-category">
+                            {a.targetAudience}
+                          </span>
+                        </div>
+                        <span className="rc-card-time">{a.date} at {a.time}</span>
+                      </div>
+                      <div className="rc-card-body">
+                        <h3 className="rc-card-title">{a.title}</h3>
+                        <p className="rc-card-text">{a.description}</p>
+                      </div>
+                      <div className="rc-card-footer mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 text-sm text-slate-500">
+                        <MapPin size={14} />
+                        <span>{a.location}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {campusActivities.length === 0 && (
+                     <div className="text-center py-8 text-slate-500">No campus activities at the moment.</div>
+                  )}
                 </div>
               ) : (
                 <div className="rc-list">
@@ -410,7 +477,7 @@ export default function ComplaintsPage() {
 
         {/* Right Column: Support / Guidance */}
         <aside className="rc-column-sidebar">
-          <div className="rc-sidebar-card rc-sidebar-card--primary">
+          <div className="rc-sidebar-card rc-sidebar-card--primary rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm">
             <HelpCircle size={24} className="rc-sidebar-icon" />
             <h3 className="rc-sidebar-title">
               {mockData.sidebarHowItWorks.title}
@@ -426,7 +493,7 @@ export default function ComplaintsPage() {
           </div>
 
           <div
-            className="rc-sidebar-card rc-sidebar-card--purple"
+            className="rc-sidebar-card rc-sidebar-card--purple rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm"
             onClick={() => (window.location.href = "/student/wellbeing")}
           >
             <div className="rc-sidebar-badge">
@@ -442,6 +509,7 @@ export default function ComplaintsPage() {
             </div>
           </div>
         </aside>
+      </div>
       </div>
     </main>
   );

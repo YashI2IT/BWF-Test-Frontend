@@ -33,19 +33,28 @@ function LoginForm() {
 
       const next = safeInternalRedirect(searchParams.get("redirect"));
       if (next) {
-        router.push(next);
-        return;
+        // Prevent redirect loops: only redirect if the path prefix matches the role
+        const isAllowed = 
+          (data.role === "admin" && next.startsWith("/admin")) ||
+          (data.role === "warden" && next.startsWith("/warden")) ||
+          (data.role === "teacher" && next.startsWith("/teacher")) ||
+          (data.role === "student" && next.startsWith("/student"));
+
+        if (isAllowed) {
+          router.push(next);
+          return;
+        }
       }
 
       // role-based redirect
       if (data.role === "admin") {
         router.push("/admin/dashboard");
       } else if (data.role === "warden") {
-        router.push("/warden/community");
+        router.push("/warden/dashboard");
       } else if (data.role === "teacher") {
         router.push("/teacher/dashboard");
       } else {
-        router.push("/student/community");
+        router.push("/student/dashboard");
       }
     } catch (err: any) {
       setError(err.message || "Login failed");

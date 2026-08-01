@@ -1,10 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 
 export async function fetchCommunityPosts() {
     // const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     const token = localStorage.getItem("accessToken");
 
-    const res = await fetch(`${API_BASE}/student/community/posts`, {
+    const res = await fetch(`${API_BASE}/community/posts`, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -22,13 +22,12 @@ export async function fetchCommunityPosts() {
 export async function postMessage(postMessage: any) {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-    const res = await fetch(`${API_BASE}/student/community/posts`, {
+    const res = await fetch(`${API_BASE}/community/posts`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(postMessage),
+        body: postMessage,
     });
 
     const data = await res.json();
@@ -42,7 +41,7 @@ export async function postMessage(postMessage: any) {
 export async function toggleLike (postId: string) {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-    const res = await fetch(`${API_BASE}/student/community/posts/${postId}/like`, {
+    const res = await fetch(`${API_BASE}/community/posts/${postId}/like`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,

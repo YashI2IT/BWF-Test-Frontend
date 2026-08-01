@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Mail, Pin, Trash2, MessageSquare, AlertCircle } from 'lucide-react'
 import { Badge } from '@/app/warden/Template/components/ui/badge'
 import { Button } from '@/app/warden/Template/components/ui/button'
 
-interface InboxMessage {
+export interface InboxMessage {
   id: string
   sender: string
   subject: string
@@ -66,9 +66,15 @@ const typeConfig = {
   system: { icon: Mail, color: 'bg-green-50 border-green-200', badge: 'System' },
 }
 
-export function PremiumInbox() {
-  const [messages, setMessages] = useState(sampleMessages)
+export function PremiumInbox({ messages: propMessages = [] }: { messages?: InboxMessage[] }) {
+  const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'unread' | 'pinned'>('all')
+
+  useEffect(() => {
+    if (propMessages.length > 0) {
+      setMessages(propMessages);
+    }
+  }, [propMessages]);
 
   const filteredMessages = messages.filter(msg => {
     if (selectedFilter === 'unread') return !msg.isRead

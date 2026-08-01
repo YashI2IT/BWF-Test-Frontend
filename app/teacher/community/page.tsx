@@ -2,7 +2,7 @@
 'use client';
 
 import { FormEvent, ReactNode, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarClock, Hash, MessageSquarePlus, Pencil, Pin, Search, Send, Trash2, Vote, X, Image as ImageIcon, Video } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/app/teacher/Template/components/ui/alert-dialog';
 import { Badge } from '@/app/teacher/Template/components/ui/badge';
@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/app/teacher/Template/components/u
 import { getAvatarUrl } from '@/app/lib/avatar';
 import api from '@/app/lib/api';
 import { cn } from '@/app/teacher/Template/lib/utils';
+import { toast } from '@/app/teacher/Template/components/ui/use-toast';
 
 type Status = 'Pending' | 'Approved' | 'Rejected' | 'Forwarded';
 type PostType = 'text' | 'poll';
@@ -45,7 +46,7 @@ interface CommunityPost {
   canManage?: boolean;
   profilePic?: string;
   mediaUrl?: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'image' | 'video' | 'pdf';
 }
 
 type ApiError = {
@@ -59,20 +60,6 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const emptyPollInputs = ['', ''];
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 15, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
-};
 
 const hostelLabel = (hostelName: CommunityPost['hostelName']) =>
   typeof hostelName === 'string' ? hostelName : hostelName?.name || 'Community';
@@ -143,6 +130,14 @@ const renderPostContent = (content: string): ReactNode =>
     ) : null;
   });
 
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('blob:')) return url;
+  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  const normalizedPath = url.replace(/\\/g, '/');
+  return `${baseUrl}/${normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath}`;
+};
+
 export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -181,8 +176,8 @@ export default function CommunityPage() {
         setIsLoading(true);
         const res = await api.get('/teacher/posts');
         setPosts(res.data.map(normalizePost));
-      } catch (error: unknown) {
-        console.error("Fetch posts error", error);
+      } catch (error) {
+        toast({ title: "Error", description: getErrorMessage(error, "Failed to load posts"), variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
@@ -554,7 +549,6 @@ export default function CommunityPage() {
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="flex items-center sm:items-start gap-4">
                             <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-100 shadow-sm bg-slate-100">
-                               {/* eslint-disable-next-line @next/next/no-img-element */}
                                <img src={post.profilePic || getAvatarUrl(post.author)} alt={post.author} className="w-full h-full object-cover" />
                             </div>
                             <div>
@@ -619,14 +613,25 @@ export default function CommunityPage() {
                             </div>
 
                             {post.mediaUrl && (
-                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center max-h-[300px] opacity-80 pointer-events-none relative">
-                                <div className="absolute top-2 left-2 z-10">
-                                  <Badge className="bg-slate-900/80 text-white font-bold backdrop-blur-sm border-0">Attached Media (Read-only)</Badge>
-                                </div>
-                                {post.mediaType === 'video' ? (
-                                  <video src={post.mediaUrl} className="w-full h-auto object-contain max-h-[300px]" />
+                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50 relative group">
+                                {post.mediaType?.startsWith('video') ? (
+                                  <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                                    <video src={getMediaUrl(post.mediaUrl)} className="w-full h-auto object-contain max-h-[300px]" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                      <div className="bg-white/80 p-3 rounded-full shadow-lg backdrop-blur-sm"><Video className="w-6 h-6 text-slate-800" /></div>
+                                    </div>
+                                  </div>
+                                ) : post.mediaType?.includes('pdf') ? (
+                                  <div className="flex flex-col items-center justify-center h-48 bg-slate-100 p-4">
+                                    <iframe src={getMediaUrl(post.mediaUrl)} className="w-full flex-1 rounded-t-lg pointer-events-none" title="PDF Document" />
+                                    <div className="w-full p-2 bg-white flex justify-center mt-2 rounded-b-lg border border-slate-200">
+                                      <a href={getMediaUrl(post.mediaUrl)} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-all">
+                                        Open PDF
+                                      </a>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <img src={post.mediaUrl} alt="Post media" className="w-full h-auto object-contain max-h-[300px]" />
+                                  <img src={getMediaUrl(post.mediaUrl)} alt="Post media" className="w-full h-auto object-contain max-h-[300px] cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})} />
                                 )}
                               </div>
                             )}
@@ -663,7 +668,7 @@ export default function CommunityPage() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setEditingPollInputs((current) => [...current, ''])}
-                                    className="h-11 w-full border-dashed border-slate-300 text-slate-500 font-bold rounded-xl"
+                                    className="h-11 w-full bg-white hover:bg-slate-50 border-dashed border-slate-300 hover:border-slate-400 text-slate-500 hover:text-slate-700 font-bold rounded-xl transition-all"
                                   >
                                     + Add poll option
                                   </Button>
@@ -684,11 +689,25 @@ export default function CommunityPage() {
                             <div className="space-y-2">{renderPostContent(post.content)}</div>
                             
                             {post.mediaUrl && (
-                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center max-h-[500px]">
-                                {post.mediaType === 'video' ? (
-                                  <video src={post.mediaUrl} controls className="w-full h-auto object-contain max-h-[500px]" />
+                              <div className="mt-6 rounded-2xl overflow-hidden border border-slate-200/60 bg-slate-50/80 shadow-sm relative group">
+                                {post.mediaType?.startsWith('video') ? (
+                                  <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                                    <video src={getMediaUrl(post.mediaUrl)} className="w-full h-auto object-contain max-h-[500px]" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                      <div className="bg-white/80 p-4 rounded-full shadow-lg backdrop-blur-sm"><Video className="w-8 h-8 text-slate-800" /></div>
+                                    </div>
+                                  </div>
+                                ) : post.mediaType?.includes('pdf') ? (
+                                  <div className="flex flex-col h-[500px] bg-slate-100 p-2">
+                                    <iframe src={getMediaUrl(post.mediaUrl)} className="w-full flex-1 rounded-t-lg" title="PDF Document" />
+                                    <div className="w-full p-4 bg-white flex justify-center rounded-b-lg border border-slate-200 mt-2">
+                                      <a href={getMediaUrl(post.mediaUrl)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-all">
+                                        Open PDF in New Tab
+                                      </a>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <img src={post.mediaUrl} alt="Post media" className="w-full h-auto object-contain max-h-[500px]" />
+                                  <img src={getMediaUrl(post.mediaUrl)} alt="Post media" className="w-full h-auto object-contain max-h-[500px] cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})} />
                                 )}
                               </div>
                             )}
@@ -732,7 +751,7 @@ export default function CommunityPage() {
                               const percent = votes ? Math.round((option.votes / votes) * 100) : 0;
                               const isVoted = post.userVote === index;
                               return (
-                                <div key={`${post._id}-poll-${index}`} className={`relative w-full rounded-xl border overflow-hidden p-3 transition-colors ${isVoted ? 'border-slate-300 bg-slate-50/30 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                                <div key={`${post._id}-poll-${index}`} className={`relative w-full rounded-full border overflow-hidden p-3 transition-colors ${isVoted ? 'border-slate-300 bg-slate-50/30 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                                   {/* Progress bar background */}
                                   <div className="absolute top-0 left-0 h-full bg-slate-200/50 transition-all duration-500 ease-out" style={{ width: `${percent}%` }} />
                                   
@@ -745,7 +764,7 @@ export default function CommunityPage() {
                                         variant={isVoted ? "default" : "outline"}
                                         size="sm"
                                         onClick={() => handleVote(post, index)}
-                                        className={`h-8 px-4 rounded-lg text-[12px] font-bold transition-all ${isVoted ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm shadow-slate-200' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                        className={`rounded-full h-8 px-5 border-slate-200 text-[12px] font-bold transition-all ${isVoted ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm shadow-slate-200' : 'text-slate-600 hover:bg-slate-50'}`}
                                       >
                                         {isVoted ? 'Voted' : 'Vote'}
                                       </Button>
@@ -838,6 +857,8 @@ export default function CommunityPage() {
                     <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50/50 flex items-center justify-center min-h-[100px]">
                       {mediaFile?.type.startsWith('video/') ? (
                         <video src={mediaPreview} controls className="w-full h-auto object-contain max-h-60" />
+                      ) : mediaFile?.type === 'application/pdf' ? (
+                        <iframe src={mediaPreview} className="w-full h-[350px] rounded-lg" title="PDF Preview" />
                       ) : (
                         <img src={mediaPreview} alt="Preview" className="w-full h-auto object-contain max-h-60" />
                       )}
@@ -897,7 +918,7 @@ export default function CommunityPage() {
                           type="button"
                           variant="outline"
                           onClick={() => setPollInputs((current) => [...current, ''])}
-                          className="h-10 w-full border-dashed border-slate-300 text-slate-500 font-bold rounded-xl text-[12px]"
+                          className="h-10 w-full bg-white hover:bg-slate-50 border-dashed border-slate-300 hover:border-slate-400 text-slate-500 hover:text-slate-700 font-bold rounded-xl text-[12px] transition-all"
                         >
                           + Add poll option
                         </Button>
@@ -928,11 +949,11 @@ export default function CommunityPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
-            <AlertDialogCancel className="rounded-xl border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-11 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-9 px-5 text-[13px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmPublish}
               disabled={isSubmitting}
-              className="rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-11 px-8 shadow-sm shadow-slate-200"
+              className="rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-9 px-6 text-[13px] shadow-sm shadow-slate-200"
             >
               {isSubmitting ? 'Posting...' : 'Publish Now'}
             </AlertDialogAction>
@@ -949,11 +970,11 @@ export default function CommunityPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
-            <AlertDialogCancel className="rounded-xl border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-11 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-9 px-5 text-[13px]">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete} 
               disabled={isDeleting}
-              className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 px-8 shadow-sm shadow-rose-200"
+              className="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-9 px-6 text-[13px] shadow-sm shadow-rose-200"
             >
               {isDeleting ? 'Deleting...' : 'Delete Post'}
             </AlertDialogAction>

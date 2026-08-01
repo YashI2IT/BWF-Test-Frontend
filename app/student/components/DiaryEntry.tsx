@@ -128,6 +128,7 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calendar nav
   const today = new Date();
@@ -199,7 +200,7 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
   };
 
   const handleSave = async () => {
-    if (!body.trim()) return;
+    if (!body.trim() || isSubmitting) return;
 
     const newEntry = {
       title: title.trim() || "Untitled",
@@ -208,6 +209,7 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
     };
 
     try {
+      setIsSubmitting(true);
       const res = await postJournal(newEntry);
 
       if (res?.entry) {
@@ -219,7 +221,9 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2500);
     } catch (err) {
-      console.error(err);
+      // Fail silently
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -392,9 +396,9 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
             {dateEntries.length === 0 ? (
               <p className="dj-cal-empty">{mockData.uiStrings.noEntryDay}</p>
             ) : (
-              dateEntries.map((e) => (
+              dateEntries.map((e, idx) => (
                 <button
-                  key={e._id}
+                  key={`${e._id}-${idx}`}
                   className="dj-cal-entry-item"
                   onClick={() => setReadEntry(e)}
                 >
@@ -440,7 +444,7 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
               <button
                 className="dj-save-btn"
                 onClick={handleSave}
-                disabled={!body.trim()}
+                disabled={!body.trim() || isSubmitting}
               >
                 <Save size={14} /> {mockData.uiStrings.saveEntryBtn}
               </button>
@@ -471,9 +475,9 @@ export default function DiaryEntry({ studentName, dob, entries }: Props) {
               </p>
             ) : (
               <div className="dj-history-list">
-                {recentEntries.map((e) => (
+                {recentEntries.map((e, idx) => (
                   <button
-                    key={e._id}
+                    key={`${e._id}-${idx}`}
                     className="dj-history-card"
                     onClick={() => setReadEntry(e)}
                   >

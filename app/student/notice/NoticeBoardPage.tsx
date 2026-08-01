@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Bell, X } from "lucide-react";
 import api from "../../lib/api"; // Note: Adjust the relative path to your api.ts file if needed
 
@@ -29,7 +30,7 @@ export default function NoticeBoardPage() {
       // Assuming your backend returns { notices: [...] } or just the array [...]
       setNotices(res.data.notices || res.data || []);
     } catch (error) {
-      console.error("Failed to fetch notices:", error);
+      // Fail silently
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +43,7 @@ export default function NoticeBoardPage() {
         prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
       );
     } catch (error) {
-      console.error("Failed to mark as read", error);
+      // Fail silently
     }
   };
 
@@ -51,17 +52,37 @@ export default function NoticeBoardPage() {
       await api.delete(`/student/noticeboard/me/notices/${id}`);
       setNotices((prev) => prev.filter((n) => n._id !== id));
     } catch (error) {
-      console.error("Failed to delete notice", error);
+      // Fail silently
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+      <div className="mb-10 px-4 md:px-0">
+        <motion.p
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.05 }}
+          className="text-[11px] font-extrabold tracking-[2.5px] uppercase text-purple-600 mb-1"
+        >
+          Updates & Alerts
+        </motion.p>
+        <motion.h1
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+        >
           Notice Board
-        </h1>
-        <p className="text-sm text-gray-500">{notices.length} notices</p>
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-[15px] text-slate-500 mt-2"
+        >
+          {notices.length} {notices.length === 1 ? "notice" : "notices"} available
+        </motion.p>
       </div>
 
       {isLoading ? (

@@ -3,8 +3,9 @@
    ========================================= */
 
 .ac-page {
-  padding: 2rem 2.25rem 4rem;
-  max-width: 1100px;
+  padding: 1.5rem 1.5rem 4rem;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   animation: ac-in 0.4s ease;
 }

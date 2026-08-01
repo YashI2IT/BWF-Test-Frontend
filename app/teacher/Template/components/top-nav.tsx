@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, MessageSquare, ChevronDown, User, Layout, LogOut, FileCheck2, Calendar } from 'lucide-react';
 import { Button } from '@/app/teacher/Template/components/ui/button';
 import api from '@/app/lib/api';
+import { getAvatarUrl } from '@/app/lib/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,53 +14,15 @@ import {
   DropdownMenuTrigger,
 } from '@/app/teacher/Template/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
-import { TeacherProfileModal } from '@/app/teacher/components/TeacherProfileModal';
-import { WidgetSettingsModal } from '@/app/teacher/components/WidgetSettingsModal';
 import { useSidebar, SidebarTrigger } from '@/app/teacher/Template/components/ui/sidebar';
 
 export function TopNav() {
   const [profile, setProfile] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "John Doe",
-      initials: "JD",
-      color: "bg-blue-100 text-blue-700",
-      time: "10m ago",
-      preview: "Hey, can you review my assignment?"
-    },
-    {
-      id: 2,
-      sender: "Admin",
-      initials: "AD",
-      color: "bg-purple-100 text-purple-700",
-      time: "1h ago",
-      preview: "Please submit your weekly report."
-    }
-  ]);
-
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "New Assignment",
-      icon: <FileCheck2 className="w-5 h-5 text-emerald-600 stroke-[2px]" />,
-      color: "bg-emerald-100",
-      time: "2m ago",
-      desc: "Rohan Verma has submitted \"Science Project\""
-    },
-    {
-      id: 2,
-      title: "Meeting Reminder",
-      icon: <Calendar className="w-5 h-5 text-amber-600 stroke-[2px]" />,
-      color: "bg-amber-100",
-      time: "15m ago",
-      desc: "Parent-Teacher meeting in 30 minutes"
-    }
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const router = useRouter();
 
@@ -223,8 +186,12 @@ export function TopNav() {
                   </>
                 ) : (
                   <>
-                    <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0">
-                      <img src={profile.profilePic || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="Teacher" className="w-full h-full object-cover" />
+                    <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-200">
+                      <img 
+                        src={profile.profilePic || getAvatarUrl(profile.name || 'Teacher')} 
+                        alt={profile.name || 'Teacher'} 
+                        className="w-full h-full object-cover" 
+                      />
                     </div>
                     <div className="hidden md:flex flex-col items-start mr-2">
                       <span className="text-[15px] font-bold text-slate-900 leading-tight tracking-tight">{profile.name}</span>
@@ -242,7 +209,7 @@ export function TopNav() {
               </div>
               
               <DropdownMenuItem 
-                onSelect={() => setIsProfileModalOpen(true)}
+                onSelect={() => router.push('/teacher/profile')}
                 className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
@@ -254,21 +221,6 @@ export function TopNav() {
                   <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-500">E</kbd>
                 </div>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                onSelect={() => setIsWidgetModalOpen(true)}
-                className="flex items-center justify-between p-2.5 cursor-pointer rounded-xl hover:bg-slate-50 focus:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Layout className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />
-                  <span className="text-[14px] font-semibold text-slate-800">Widget settings</span>
-                </div>
-                <div className="flex gap-1 items-center">
-                  <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-500">⌘</kbd>
-                  <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-500">W</kbd>
-                </div>
-              </DropdownMenuItem>
-              
               <DropdownMenuSeparator className="bg-slate-100 my-1 mx-[-8px]" />
               
               <DropdownMenuItem 
@@ -282,19 +234,6 @@ export function TopNav() {
           </DropdownMenu>
         </div>
       </div>
-
-      <TeacherProfileModal 
-        isOpen={isProfileModalOpen} 
-        onClose={() => {
-          setIsProfileModalOpen(false);
-          fetchProfile();
-        }} 
-        initialProfile={profile}
-      />
-      <WidgetSettingsModal
-        isOpen={isWidgetModalOpen}
-        onClose={() => setIsWidgetModalOpen(false)}
-      />
     </div>
   );
 }

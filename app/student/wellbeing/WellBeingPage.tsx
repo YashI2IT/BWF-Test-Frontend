@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/purity */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
 // app/student/wellbeing/WellBeingPage.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
@@ -14,11 +18,14 @@ import {
   RotateCcw,
   Zap,
   Star,
-  Leaf,
   Users,
   Palette,
+  Leaf,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { CHALLENGES } from "../constants/wellbeingChallenges";
+import { SkeletonLoader } from "../components/SkeletonLoader";
+import { useProfile } from "../context/ProfileContext";
 import {
   getMoodHistory,
   postMoodEntry,
@@ -461,7 +468,6 @@ function GroundingExercise({ onClose }: { onClose: () => void }) {
    MAIN COMPONENT
 ─────────────────────────────── */
 export default function WellBeingPage() {
-  const today = new Date().toISOString().split("T")[0];
   const dayOfYear = Math.floor(
     (new Date().getTime() -
       new Date(new Date().getFullYear(), 0, 0).getTime()) /
@@ -489,6 +495,25 @@ export default function WellBeingPage() {
   // ]);
 
   const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        setIsLoading(true);
+        const [res] = await Promise.all([
+          getMoodHistory(),
+          new Promise((resolve) => setTimeout(resolve, 1000))
+        ]);
+        setMoodHistory(res.history || res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadInitialData();
+  }, []);
 
   /* CBT */
   const [cbtPhase, setCBTPhase] = useState<CBTPhase>("mood");
@@ -511,8 +536,8 @@ export default function WellBeingPage() {
   /* Relaxation */
   const [activeRelax, setActiveRelax] = useState<RelaxExercise>(null);
 
-  const [taskCompleted, setTaskCompleted] = useState(false);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ── CBT helpers ── */
   const cbtConfig = cbtMood ? mockData.moodConfig[cbtMood] : null;
@@ -556,7 +581,7 @@ export default function WellBeingPage() {
   };
 
   const handleCBTSave = async () => {
-    if (!cbtMood) return;
+    if (!cbtMood || isSubmitting) return;
 
     const payload = {
       mood: cbtMood,
@@ -566,6 +591,7 @@ export default function WellBeingPage() {
     };
 
     try {
+      setIsSubmitting(true);
       await postMoodEntry(payload);
 
       // refresh history from backend
@@ -583,8 +609,10 @@ export default function WellBeingPage() {
       setCBTSaved(true);
 
       setTimeout(() => setCBTSaved(false), 3500);
-    } catch (err) {
-      console.error("Failed to save mood", err);
+    } catch {
+      // Fail silently
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -601,8 +629,8 @@ export default function WellBeingPage() {
       setShowConfetti(true);
 
       setTimeout(() => setShowConfetti(false), 2200);
-    } catch (err) {
-      console.error("Challenge update failed", err);
+    } catch {
+      // Fail silently
     } finally {
       setTaskLoading(false);
     }
@@ -610,9 +638,10 @@ export default function WellBeingPage() {
 
   /* ── Counselling ── */
   const handleCounsellingSubmit = async () => {
-    if (!counsellingMsg.trim()) return;
+    if (!counsellingMsg.trim() || isSubmitting) return;
 
     try {
+      setIsSubmitting(true);
       await requestCounselingSession({
         message: counsellingMsg,
       });
@@ -625,474 +654,616 @@ export default function WellBeingPage() {
         setCounsellingSent(false);
       }, 3000);
     } catch (err) {
-      console.error(err);
+      console.error("Counselling Error:", err);
+      alert("Failed to send request: " + (err as Error).message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const greeting = studentName ? `Hey ${studentName}!` : "Hey there! 👋";
 
+  if (isLoading) {
+    return <SkeletonLoader />;
+  }
+
   return (
-    <div className="wb-page">
-      <Confetti active={showConfetti} />
+    <main className="flex-1 bg-[#F4F5F7] min-h-screen font-sans relative overflow-x-hidden">
+      <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
+        <Confetti active={showConfetti} />
 
-      {/* ── HEADER ── */}
-      <header className="wb-header">
-        <p className="wb-eyebrow">Wellbeing / Help</p>
-        <h1 className="wb-title">{mockData.uiStrings.pageTitle}</h1>
-        <p className="wb-subtitle">{mockData.uiStrings.pageSubtitle}</p>
-      </header>
-
-      {/* ── HERO BANNER ── */}
-      <div className="wb-hero">
-        <div className="wb-hero-blob wb-hero-blob-1" />
-        <div className="wb-hero-blob wb-hero-blob-2" />
-        <div className="wb-hero-inner">
-          <div className="wb-hero-left">
-            <h2>{mockData.uiStrings.heroTitle}</h2>
-            <p>{mockData.uiStrings.heroSub}</p>
+        {/* ── HEADER ── */}
+        <motion.div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6 mt-2 px-4 md:px-0">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              {mockData.uiStrings.pageTitle}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2"
+            >
+              {mockData.uiStrings.pageSubtitle}
+            </motion.p>
           </div>
-          <div className="wb-hero-lotus">🌸</div>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* ── MAIN GRID ── */}
-      <div className="wb-grid">
-        {/* ════ LEFT COLUMN ════ */}
-        <div className="wb-col">
-          {/* DAILY CHALLENGE */}
-          <section className="wb-card">
-            <div className="wb-card-header">
-              <span className="wb-card-emoji">✨</span>
-              <h2 className="wb-card-title">
-                {mockData.uiStrings.challengeTitle}
+        {/* ── HERO BANNER ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative bg-gradient-to-br from-pink-100 via-blue-50 to-green-100 rounded-3xl p-8 mb-8 overflow-hidden border border-white/80 shadow-[0_10px_32px_rgba(236,72,153,0.08)]"
+        >
+          <div className="absolute -top-20 -right-16 w-52 h-52 bg-white/35 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-10 left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+          
+          <div className="relative z-10 flex items-center justify-between gap-6">
+            <div>
+              <h2 className="text-2xl font-black text-rose-900 mb-2 tracking-tight">
+                {mockData.uiStrings.heroTitle}
               </h2>
-              <span
-                className="wb-challenge-category-badge"
+              <p className="text-[15px] font-semibold text-rose-800 leading-relaxed max-w-sm">
+                {mockData.uiStrings.heroSub}
+              </p>
+            </div>
+            <div className="text-6xl hidden sm:block">🌸</div>
+          </div>
+        </motion.div>
+
+        {/* ── MAIN GRID ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          {/* ════ LEFT COLUMN ════ */}
+          <div className="lg:col-span-6 flex flex-col gap-6">
+            
+            {/* DAILY CHALLENGE */}
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-5 flex-wrap">
+                <span className="text-2xl">✨</span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight flex-1">
+                  {mockData.uiStrings.challengeTitle}
+                </h2>
+                <span
+                  className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase px-3 py-1.5 rounded-full tracking-wide"
+                  style={{
+                    background: dailyChallenge.bg,
+                    color: dailyChallenge.color,
+                  }}
+                >
+                  {CATEGORY_ICONS[dailyChallenge.category]}
+                  {dailyChallenge.category}
+                </span>
+              </div>
+
+              <div
+                className="rounded-2xl p-6 text-center mb-4 transition-transform hover:-translate-y-1 border-2"
                 style={{
                   background: dailyChallenge.bg,
-                  color: dailyChallenge.color,
+                  borderColor: dailyChallenge.color,
                 }}
               >
-                {CATEGORY_ICONS[dailyChallenge.category]}
-                {dailyChallenge.category}
-              </span>
-            </div>
-
-            <div
-              className="wb-challenge-box"
-              style={
-                {
-                  "--ch": dailyChallenge.color,
-                  "--chb": dailyChallenge.bg,
-                } as React.CSSProperties
-              }
-            >
-              <span className="wb-challenge-emoji">{dailyChallenge.emoji}</span>
-              <p className="wb-challenge-title">{dailyChallenge.title}</p>
-              <p className="wb-challenge-desc">{dailyChallenge.description}</p>
-              <p className="wb-challenge-instr">{dailyChallenge.instruction}</p>
-
-              {!challengeCompleted ? (
-                <button
-                  className="wb-challenge-btn"
-                  onClick={handleChallengeComplete}
+                <span className="block text-5xl mb-4 animate-bounce">
+                  {dailyChallenge.emoji}
+                </span>
+                <p
+                  className="text-xl font-black mb-1.5 tracking-tight"
+                  style={{ color: dailyChallenge.color }}
                 >
-                  <Flame size={16} />
-                  {taskLoading ? "Saving..." : "I did this! 🎉"}
+                  {dailyChallenge.title}
+                </p>
+                <p
+                  className="text-[15px] font-semibold mb-3 opacity-90"
+                  style={{ color: dailyChallenge.color }}
+                >
+                  {dailyChallenge.description}
+                </p>
+                <p
+                  className="text-[14px] font-semibold mb-5 opacity-80 italic"
+                  style={{ color: dailyChallenge.color }}
+                >
+                  {dailyChallenge.instruction}
+                </p>
+
+                {!challengeCompleted ? (
+                  <button
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-extrabold text-[15px] text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                    style={{ background: dailyChallenge.color }}
+                    onClick={handleChallengeComplete}
+                  >
+                    <Flame size={18} />
+                    {taskLoading ? "Saving..." : "I did this! 🎉"}
+                  </button>
+                ) : (
+                  <div
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-extrabold text-[15px] text-white"
+                    style={{ background: dailyChallenge.color }}
+                  >
+                    <Check size={18} />
+                    Challenge crushed! You're amazing 🔥
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[13px] font-semibold text-slate-500 text-center">
+                {challengeCompleted
+                  ? "🌟 You're on a streak! Keep it up tomorrow."
+                  : "Complete your challenge to feel more energised!"}
+              </p>
+            </motion.section>
+
+            {/* RELAXATION / CALM CORNER */}
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-blue-50 to-purple-50 p-5 sm:p-6 shadow-sm flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">🍃</span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                  {mockData.uiStrings.calmCornerTitle}
+                </h2>
+              </div>
+              <p className="text-[14px] font-semibold text-slate-500 mb-5 leading-relaxed">
+                {mockData.uiStrings.calmCornerIntro}
+              </p>
+
+              {!activeRelax ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {mockData.relaxExercises.map((ex) => (
+                    <button
+                      key={ex.id}
+                      className="rounded-2xl p-4 flex flex-col items-center gap-2 text-center transition-all hover:-translate-y-1 hover:shadow-md border-2 border-transparent"
+                      style={{
+                        background: ex.bg,
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = ex.color)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "transparent")
+                      }
+                      onClick={() => setActiveRelax(ex.id as RelaxExercise)}
+                    >
+                      <span className="text-3xl mb-1">{ex.emoji}</span>
+                      <span
+                        className="text-[13px] font-black leading-tight"
+                        style={{ color: ex.color }}
+                      >
+                        {ex.title}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500 leading-snug">
+                        {ex.tagline}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="animate-fade-in">
+                  <div className="flex items-center gap-3 mb-4 text-[15px] font-extrabold text-slate-900">
+                    <span>
+                      {
+                        mockData.relaxExercises.find(
+                          (e) => e.id === activeRelax,
+                        )?.emoji
+                      }
+                    </span>
+                    <span>
+                      {
+                        mockData.relaxExercises.find(
+                          (e) => e.id === activeRelax,
+                        )?.title
+                      }
+                    </span>
+                    <button
+                      className="ml-auto bg-slate-100 border border-slate-200 text-slate-500 hover:bg-white hover:text-slate-700 px-3 py-1.5 rounded-lg text-[13px] font-bold transition-colors"
+                      onClick={() => setActiveRelax(null)}
+                    >
+                      ← Back
+                    </button>
+                  </div>
+                  {activeRelax === "breathing" && (
+                    <BreathingExercise onClose={() => setActiveRelax(null)} />
+                  )}
+                  {activeRelax === "bodyscan" && (
+                    <BodyScanExercise onClose={() => setActiveRelax(null)} />
+                  )}
+                  {activeRelax === "grounding" && (
+                    <GroundingExercise onClose={() => setActiveRelax(null)} />
+                  )}
+                </div>
+              )}
+            </motion.section>
+
+            {/* NEED TO TALK / COUNSELLING */}
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">💬</span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                  {mockData.uiStrings.talkTitle}
+                </h2>
+              </div>
+              <p className="text-[14px] font-semibold text-slate-500 mb-5 leading-relaxed">
+                {mockData.uiStrings.talkTagline}
+              </p>
+
+              {!showCounselling ? (
+                <button
+                  className="w-full bg-gradient-to-r from-pink-100 to-pink-50 border border-pink-200 hover:border-pink-300 text-pink-700 font-extrabold text-[15px] py-4 px-5 rounded-2xl flex items-center justify-between transition-all hover:-translate-y-0.5 hover:shadow-md shadow-pink-500/10"
+                  onClick={() => setShowCounselling(true)}
+                >
+                  <div className="flex items-center gap-3">
+                    <MessageCircle size={18} />
+                    {mockData.uiStrings.requestCounselling}
+                  </div>
+                  <ChevronRight size={18} />
                 </button>
               ) : (
-                <div className="wb-challenge-done">
-                  <Check size={16} />
-                  Challenge crushed! You're amazing 🔥
+                <div className="animate-fade-in">
+                  <p className="text-[14px] font-semibold text-slate-500 mb-4 leading-relaxed">
+                    Your warden and counsellor care about you. Tell them what's
+                    on your mind (optional).
+                  </p>
+                  <textarea
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 text-[15px] font-medium text-slate-900 mb-4 transition-colors resize-y"
+                    placeholder="What's bothering you? (you don't have to share everything)"
+                    value={counsellingMsg}
+                    onChange={(e) => setCounsellingMsg(e.target.value)}
+                    rows={3}
+                  />
+                  {!counsellingSent ? (
+                    <div className="flex gap-3">
+                      <button
+                        className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[14px] py-3 rounded-xl transition-colors"
+                        onClick={() => setShowCounselling(false)}
+                      >
+                        Not right now
+                      </button>
+                      <button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[14px] py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                        onClick={handleCounsellingSubmit}
+                        disabled={isSubmitting}
+                      >
+                        <Send size={16} />
+                        Yes, send request
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[15px] px-4 py-3 rounded-xl animate-fade-in">
+                      <Check size={20} />
+                      <span>{mockData.uiStrings.counsellingSent}</span>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </motion.section>
+          </div>
 
-            <p className="wb-challenge-hint">
-              {challengeCompleted
-                ? "🌟 You're on a streak! Keep it up tomorrow."
-                : "Complete your challenge to feel more energised!"}
-            </p>
-          </section>
-
-          {/* RELAXATION / CALM CORNER */}
-          <section className="wb-card wb-calm-card">
-            <div className="wb-card-header">
-              <span className="wb-card-emoji">🍃</span>
-              <h2 className="wb-card-title">
-                {mockData.uiStrings.calmCornerTitle}
-              </h2>
-            </div>
-            <p className="wb-calm-intro">
-              {mockData.uiStrings.calmCornerIntro}
-            </p>
-
-            {!activeRelax ? (
-              <div className="wb-calm-grid">
-                {mockData.relaxExercises.map((ex) => (
-                  <button
-                    key={ex.id}
-                    className="wb-calm-exercise-btn"
-                    style={
-                      {
-                        "--rex": ex.color,
-                        "--rexb": ex.bg,
-                      } as React.CSSProperties
-                    }
-                    onClick={() => setActiveRelax(ex.id as RelaxExercise)}
-                  >
-                    <span className="wb-calm-ex-emoji">{ex.emoji}</span>
-                    <span className="wb-calm-ex-title">{ex.title}</span>
-                    <span className="wb-calm-ex-tagline">{ex.tagline}</span>
-                  </button>
-                ))}
+          {/* ════ RIGHT COLUMN ════ */}
+          <div className="lg:col-span-6 flex flex-col gap-6">
+            
+            {/* PERSONALISED CBT CHECK-IN */}
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white to-blue-50/50 p-5 sm:p-6 shadow-sm flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-2xl">🧠</span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                  {mockData.uiStrings.cbtTitle}
+                </h2>
               </div>
-            ) : (
-              <div className="wb-calm-active">
-                <div className="wb-calm-active-header">
-                  <span>
-                    {
-                      mockData.relaxExercises.find((e) => e.id === activeRelax)
-                        ?.emoji
-                    }
-                  </span>
-                  <strong>
-                    {
-                      mockData.relaxExercises.find((e) => e.id === activeRelax)
-                        ?.title
-                    }
-                  </strong>
-                  <button
-                    className="wb-calm-back-btn"
-                    onClick={() => setActiveRelax(null)}
-                  >
-                    ← Back
-                  </button>
+
+              {/* Progress bar */}
+              {!cbtSaved && (
+                <div className="flex gap-1.5 mb-6">
+                  {phases.map((p, i) => (
+                    <div
+                      key={p}
+                      className={`flex-1 h-1.5 rounded-full transition-colors duration-300 ${
+                        phases.indexOf(cbtPhase) >= i
+                          ? "bg-blue-500"
+                          : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
                 </div>
-                {activeRelax === "breathing" && (
-                  <BreathingExercise onClose={() => setActiveRelax(null)} />
-                )}
-                {activeRelax === "bodyscan" && (
-                  <BodyScanExercise onClose={() => setActiveRelax(null)} />
-                )}
-                {activeRelax === "grounding" && (
-                  <GroundingExercise onClose={() => setActiveRelax(null)} />
-                )}
-              </div>
-            )}
-          </section>
+              )}
 
-          {/* NEED TO TALK / COUNSELLING */}
-          <section className="wb-card wb-counselling-card">
-            <div className="wb-card-header">
-              <span className="wb-card-emoji">💬</span>
-              <h2 className="wb-card-title">{mockData.uiStrings.talkTitle}</h2>
-            </div>
-            <p className="wb-counselling-tagline">
-              {mockData.uiStrings.talkTagline}
-            </p>
-
-            {!showCounselling ? (
-              <button
-                className="wb-counselling-btn"
-                onClick={() => setShowCounselling(true)}
-              >
-                <MessageCircle size={16} />
-                {mockData.uiStrings.requestCounselling}
-                <ChevronRight size={14} />
-              </button>
-            ) : (
-              <div className="wb-counselling-form">
-                <p className="wb-counselling-info">
-                  Your warden and counsellor care about you. Tell them what's on
-                  your mind (optional).
-                </p>
-                <textarea
-                  className="wb-counselling-input"
-                  placeholder="What's bothering you? (you don't have to share everything)"
-                  value={counsellingMsg}
-                  onChange={(e) => setCounsellingMsg(e.target.value)}
-                  rows={3}
-                />
-                {!counsellingSent ? (
-                  <div className="wb-counselling-actions">
-                    <button
-                      className="wb-btn-secondary"
-                      onClick={() => setShowCounselling(false)}
-                    >
-                      Not right now
-                    </button>
-                    <button
-                      className="wb-btn-primary"
-                      onClick={handleCounsellingSubmit}
-                    >
-                      <Send size={14} />
-                      Yes, send request
-                    </button>
-                  </div>
-                ) : (
-                  <div className="wb-counselling-success">
-                    <Check size={18} fill="currentColor" />
-                    <span>{mockData.uiStrings.counsellingSent}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ════ RIGHT COLUMN ════ */}
-        <div className="wb-col">
-          {/* PERSONALISED CBT CHECK-IN */}
-          <section className="wb-card wb-cbt-card">
-            <div className="wb-card-header">
-              <span className="wb-card-emoji">🧠</span>
-              <h2 className="wb-card-title">{mockData.uiStrings.cbtTitle}</h2>
-            </div>
-
-            {/* Progress bar */}
-            {!cbtSaved && (
-              <div className="wb-cbt-progress-bar">
-                {phases.map((p, i) => (
-                  <div
-                    key={p}
-                    className={`wb-cbt-progress-step ${phases.indexOf(cbtPhase) >= i ? "wb-cbt-progress-step--done" : ""}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {cbtSaved ? (
-              <div className="wb-cbt-success">
-                <Sparkles size={20} fill="currentColor" />
-                <p>
-                  Check-in saved! You just invested in yourself. That's huge. 💛
-                </p>
-              </div>
-            ) : (
-              <div className="wb-cbt-flow">
-                {/* Phase 1: Mood */}
-                {cbtPhase === "mood" && (
-                  <div className="wb-cbt-phase">
-                    <p className="wb-cbt-q">
-                      {greeting} How are you feeling right now?
-                    </p>
-                    <div className="wb-cbt-moods">
-                      {(Object.keys(mockData.moodConfig) as Mood[]).map((m) => {
-                        const cfg = mockData.moodConfig[m];
-                        return (
-                          <button
-                            key={m}
-                            className={`wb-cbt-mood-btn ${cbtMood === m ? "wb-cbt-mood-btn--active" : ""}`}
-                            style={
-                              {
-                                "--mc": cfg.color,
-                                "--mb": cfg.bg,
-                              } as React.CSSProperties
-                            }
-                            onClick={() => setCBTMood(m)}
-                          >
-                            <span className="wb-cbt-emoji">{cfg.emoji}</span>
-                            <span className="wb-cbt-label">{cfg.label}</span>
-                          </button>
-                        );
-                      })}
+              {cbtSaved ? (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[15px] p-5 rounded-2xl animate-fade-in">
+                  <Sparkles size={24} className="shrink-0" />
+                  <p>
+                    Check-in saved! You just invested in yourself. That's huge. 💛
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col">
+                  {/* Phase 1: Mood */}
+                  {cbtPhase === "mood" && (
+                    <div className="animate-fade-in flex-1">
+                      <p className="text-[16px] font-black text-slate-900 mb-4 tracking-tight">
+                        {greeting} How are you feeling right now?
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                        {(Object.keys(mockData.moodConfig) as Mood[]).map((m) => {
+                          const cfg = mockData.moodConfig[m];
+                          return (
+                            <button
+                              key={m}
+                              className={`rounded-2xl p-4 flex flex-col items-center gap-2 transition-all border-2 ${
+                                cbtMood === m
+                                  ? "scale-[1.03] shadow-md"
+                                  : "hover:-translate-y-1 border-transparent"
+                              }`}
+                              style={{
+                                background: cfg.bg,
+                                borderColor: cbtMood === m ? cfg.color : "transparent",
+                              }}
+                              onClick={() => setCBTMood(m)}
+                            >
+                              <span className="text-3xl">{cfg.emoji}</span>
+                              <span
+                                className="text-[13px] font-extrabold"
+                                style={{ color: cfg.color }}
+                              >
+                                {cfg.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {cbtMood && (
+                        <div
+                          className="px-4 py-3 rounded-xl border font-bold text-[15px] text-center mb-5 animate-fade-in"
+                          style={{
+                            background: mockData.moodConfig[cbtMood].bg,
+                            borderColor: mockData.moodConfig[cbtMood].color + "55",
+                            color: mockData.moodConfig[cbtMood].color,
+                          }}
+                        >
+                          {mockData.moodConfig[cbtMood].affirmation}
+                        </div>
+                      )}
                     </div>
-                    {cbtMood && (
-                      <div
-                        className="wb-cbt-affirmation"
-                        style={{
-                          background: mockData.moodConfig[cbtMood].bg,
-                          borderColor:
-                            mockData.moodConfig[cbtMood].color + "55",
-                          color: mockData.moodConfig[cbtMood].color,
+                  )}
+
+                  {/* Phase 2: Context */}
+                  {cbtPhase === "context" && cbtConfig && (
+                    <div className="animate-fade-in flex-1">
+                      <p className="text-[16px] font-black text-slate-900 mb-1 tracking-tight">
+                        {cbtConfig.contextPrompt}
+                      </p>
+                      <p className="text-[14px] font-semibold text-slate-500 mb-4 leading-relaxed">
+                        Share as much or as little as you'd like — this is just
+                        for you.
+                      </p>
+                      <textarea
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-[15px] font-medium text-slate-900 mb-5 transition-colors resize-y"
+                        placeholder="For example: 'I have a big exam tomorrow' or 'I had a great chat with a friend'..."
+                        value={cbtContext}
+                        onChange={(e) => setCBTContext(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+
+                  {/* Phase 3: Thought */}
+                  {cbtPhase === "thought" && cbtConfig && (
+                    <div className="animate-fade-in flex-1">
+                      <p className="text-[16px] font-black text-slate-900 mb-1 tracking-tight">
+                        {cbtConfig.thoughtPrompt}
+                      </p>
+                      <p className="text-[14px] font-semibold text-slate-500 mb-4 leading-relaxed">
+                        Our thoughts shape how we feel. Name the thought honestly.
+                      </p>
+                      <textarea
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-[15px] font-medium text-slate-900 mb-5 transition-colors resize-y"
+                        placeholder="For example: 'I'm going to mess it up' or 'I'm proud of myself'..."
+                        value={cbtThought}
+                        onChange={(e) => setCBTThought(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+
+                  {/* Phase 4: Reframe */}
+                  {cbtPhase === "reframe" && cbtConfig && (
+                    <div className="animate-fade-in flex-1">
+                      <p className="text-[16px] font-black text-slate-900 mb-1 tracking-tight">
+                        {cbtConfig.reframePrompt}
+                      </p>
+                      <p className="text-[14px] font-semibold text-slate-500 mb-4 leading-relaxed">
+                        {cbtMood === "Need Help"
+                          ? "Try to be as kind to yourself as you'd be to your best friend."
+                          : "Reframing helps you see clearly — not to dismiss your feelings, but to find strength."}
+                      </p>
+                      {cbtThought && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 flex flex-col gap-1">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+                            Your thought:
+                          </span>
+                          <span className="text-[14px] text-slate-600 font-medium">
+                            "{cbtThought}"
+                          </span>
+                        </div>
+                      )}
+                      <textarea
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-[15px] font-medium text-slate-900 mb-5 transition-colors resize-y"
+                        placeholder="Write a kinder or more balanced thought here..."
+                        value={cbtReframe}
+                        onChange={(e) => setCBTReframe(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+
+                  {/* Phase 5: Action */}
+                  {cbtPhase === "action" && (
+                    <div className="animate-fade-in flex-1">
+                      <p className="text-[16px] font-black text-slate-900 mb-1 tracking-tight">
+                        {mockData.uiStrings.cbtActionPrompt}
+                      </p>
+                      <p className="text-[14px] font-semibold text-slate-500 mb-4 leading-relaxed">
+                        Pick one action. Even tiny steps count.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 mb-5">
+                        {CBT_ACTIONS.map((a) => (
+                          <button
+                            key={a.value}
+                            className={`rounded-xl p-3 flex flex-col items-center gap-2 border-2 transition-all ${
+                              cbtAction === a.value
+                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white hover:border-slate-300"
+                            }`}
+                            onClick={() => setCBTAction(a.value)}
+                          >
+                            <span className="text-2xl">{a.emoji}</span>
+                            <span className="text-[13px] font-bold text-center">
+                              {a.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Navigation */}
+                  <div className="flex gap-3 mt-auto">
+                    {cbtPhase !== "mood" && (
+                      <button
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[14px] px-5 py-3 rounded-xl transition-colors flex items-center gap-2"
+                        onClick={() => {
+                          const idx = phases.indexOf(cbtPhase);
+                          if (idx > 0) setCBTPhase(phases[idx - 1]);
                         }}
                       >
-                        {mockData.moodConfig[cbtMood].affirmation}
-                      </div>
+                        <RotateCcw size={16} />
+                        Back
+                      </button>
+                    )}
+                    {cbtPhase !== "action" ? (
+                      <button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[14px] py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                        onClick={handleCBTNext}
+                        disabled={
+                          (cbtPhase === "mood" && !cbtMood) ||
+                          (cbtPhase === "context" && !cbtContext.trim()) ||
+                          (cbtPhase === "thought" && !cbtThought.trim()) ||
+                          (cbtPhase === "reframe" && !cbtReframe.trim())
+                        }
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[14px] py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                        onClick={handleCBTSave}
+                        disabled={isSubmitting}
+                      >
+                        <Star size={16} />
+                        Save Check-In
+                      </button>
                     )}
                   </div>
-                )}
+                </div>
+              )}
+            </motion.section>
 
-                {/* Phase 2: Context */}
-                {cbtPhase === "context" && cbtConfig && (
-                  <div className="wb-cbt-phase">
-                    <p className="wb-cbt-q">{cbtConfig.contextPrompt}</p>
-                    <p className="wb-cbt-sub">
-                      Share as much or as little as you'd like — this is just
-                      for you.
-                    </p>
-                    <textarea
-                      className="wb-cbt-input"
-                      placeholder="For example: 'I have a big exam tomorrow' or 'I had a great chat with a friend'..."
-                      value={cbtContext}
-                      onChange={(e) => setCBTContext(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                )}
-
-                {/* Phase 3: Thought */}
-                {cbtPhase === "thought" && cbtConfig && (
-                  <div className="wb-cbt-phase">
-                    <p className="wb-cbt-q">{cbtConfig.thoughtPrompt}</p>
-                    <p className="wb-cbt-sub">
-                      Our thoughts shape how we feel. Name the thought honestly.
-                    </p>
-                    <textarea
-                      className="wb-cbt-input"
-                      placeholder="For example: 'I'm going to mess it up' or 'I'm proud of myself'..."
-                      value={cbtThought}
-                      onChange={(e) => setCBTThought(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                )}
-
-                {/* Phase 4: Reframe (this is the new CBT step!) */}
-                {cbtPhase === "reframe" && cbtConfig && (
-                  <div className="wb-cbt-phase">
-                    <p className="wb-cbt-q">{cbtConfig.reframePrompt}</p>
-                    <p className="wb-cbt-sub">
-                      {cbtMood === "Need Help"
-                        ? "Try to be as kind to yourself as you'd be to your best friend."
-                        : "Reframing helps you see clearly — not to dismiss your feelings, but to find strength."}
-                    </p>
-                    {cbtThought && (
-                      <div className="wb-cbt-thought-echo">
-                        <span className="wb-cbt-thought-echo-label">
-                          Your thought:
-                        </span>
-                        <span>"{cbtThought}"</span>
-                      </div>
-                    )}
-                    <textarea
-                      className="wb-cbt-input"
-                      placeholder="Write a kinder or more balanced thought here..."
-                      value={cbtReframe}
-                      onChange={(e) => setCBTReframe(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                )}
-
-                {/* Phase 5: Action */}
-                {cbtPhase === "action" && (
-                  <div className="wb-cbt-phase">
-                    <p className="wb-cbt-q">
-                      {mockData.uiStrings.cbtActionPrompt}
-                    </p>
-                    <p className="wb-cbt-sub">
-                      Pick one action. Even tiny steps count.
-                    </p>
-                    <div className="wb-cbt-actions">
-                      {CBT_ACTIONS.map((a) => (
-                        <button
-                          key={a.value}
-                          className={`wb-cbt-action ${cbtAction === a.value ? "wb-cbt-action--selected" : ""}`}
-                          onClick={() => setCBTAction(a.value)}
-                        >
-                          <span className="wb-cbt-action-emoji">{a.emoji}</span>
-                          <span>{a.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Navigation */}
-                <div className="wb-cbt-nav">
-                  {cbtPhase !== "mood" && (
-                    <button
-                      className="wb-btn-secondary"
-                      onClick={() => {
-                        const idx = phases.indexOf(cbtPhase);
-                        if (idx > 0) setCBTPhase(phases[idx - 1]);
+            {/* MOOD HISTORY */}
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-2xl">📅</span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                  {mockData.uiStrings.moodJourneyTitle}
+                </h2>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                {moodHistory.slice(0, 5).map((entry) => {
+                  const cfg = mockData.moodConfig[entry.mood];
+                  return (
+                    <div
+                      key={entry.id}
+                      className="flex items-start gap-4 p-4 rounded-2xl border-2 transition-transform hover:translate-x-1"
+                      style={{
+                        background: cfg.bg,
+                        borderColor: "transparent",
                       }}
-                    >
-                      <RotateCcw size={14} />
-                      Back
-                    </button>
-                  )}
-                  {cbtPhase !== "action" ? (
-                    <button
-                      className="wb-btn-primary"
-                      onClick={handleCBTNext}
-                      disabled={
-                        (cbtPhase === "mood" && !cbtMood) ||
-                        (cbtPhase === "context" && !cbtContext.trim()) ||
-                        (cbtPhase === "thought" && !cbtThought.trim()) ||
-                        (cbtPhase === "reframe" && !cbtReframe.trim())
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = cfg.color)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "transparent")
                       }
                     >
-                      Next <ChevronRight size={14} />
-                    </button>
-                  ) : (
-                    <button className="wb-btn-primary" onClick={handleCBTSave}>
-                      <Star size={14} />
-                      Save Check-In
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* MOOD HISTORY */}
-          <section className="wb-card">
-            <div className="wb-card-header">
-              <span className="wb-card-emoji">📅</span>
-              <h2 className="wb-card-title">
-                {mockData.uiStrings.moodJourneyTitle}
-              </h2>
-            </div>
-            <div className="wb-history-list">
-              {moodHistory.slice(0, 5).map((entry) => {
-                const cfg = mockData.moodConfig[entry.mood];
-                return (
-                  <div
-                    key={entry.id}
-                    className="wb-history-item"
-                    style={
-                      {
-                        "--mc": cfg.color,
-                        "--mb": cfg.bg,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <span className="wb-hist-emoji">{cfg.emoji}</span>
-                    <div className="wb-hist-text">
+                      <span className="text-3xl shrink-0">{cfg.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="block font-black text-[14px] mb-0.5"
+                          style={{ color: cfg.color }}
+                        >
+                          {cfg.label}
+                        </span>
+                        {entry.context && (
+                          <p
+                            className="text-[13px] font-bold opacity-90 mb-1"
+                            style={{ color: cfg.color }}
+                          >
+                            {entry.context}
+                          </p>
+                        )}
+                        {entry.reframe && (
+                          <p className="text-[12px] font-bold text-indigo-600 italic mt-1">
+                            💭 {entry.reframe}
+                          </p>
+                        )}
+                      </div>
                       <span
-                        className="wb-hist-mood"
+                        className="text-[12px] font-extrabold opacity-70 shrink-0"
                         style={{ color: cfg.color }}
                       >
-                        {cfg.label}
+                        {new Date(entry.date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                        })}
                       </span>
-                      {entry.context && (
-                        <p className="wb-hist-note">{entry.context}</p>
-                      )}
-                      {entry.reframe && (
-                        <p className="wb-hist-reframe">💭 {entry.reframe}</p>
-                      )}
                     </div>
-                    <span className="wb-hist-date">
-                      {new Date(entry.date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </span>
-                  </div>
-                );
-              })}
-              {moodHistory.length === 0 && (
-                <p className="wb-hist-empty">
-                  No check-ins yet. Start your journey above! 🌱
-                </p>
-              )}
-            </div>
-          </section>
+                  );
+                })}
+                {moodHistory.length === 0 && (
+                  <p className="text-[14px] font-semibold text-slate-500 text-center py-6">
+                    No check-ins yet. Start your journey above! 🌱
+                  </p>
+                )}
+              </div>
+            </motion.section>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

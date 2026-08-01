@@ -55,8 +55,7 @@ export default function SubmissionsPage() {
       if (showSkeleton) setLoading(true);
       const data = await getSubmissions();
       setSubmissions(data);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to load submissions.', variant: 'destructive' });
     } finally {
       if (showSkeleton) setLoading(false);
@@ -69,8 +68,17 @@ export default function SubmissionsPage() {
   }, []);
 
   const filteredSubmissions = useMemo(() => {
-    if (filter === 'All') return submissions;
-    return submissions.filter(sub => sub.status === filter);
+    let result = submissions;
+    if (filter !== 'All') {
+      result = submissions.filter(sub => sub.status === filter);
+    }
+    
+    // Sort by submittedAt descending (newest first)
+    return [...result].sort((a, b) => {
+      const dateA = new Date(a.submittedAt || 0).getTime();
+      const dateB = new Date(b.submittedAt || 0).getTime();
+      return dateB - dateA;
+    });
   }, [filter, submissions]);
 
   const pendingCount = submissions.filter(s => s.status === 'pending').length;
@@ -103,8 +111,7 @@ export default function SubmissionsPage() {
       toast({ title: 'Success', description: 'Review saved successfully.' });
       setExpandedId(null);
       loadData(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to save review.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -137,7 +144,7 @@ export default function SubmissionsPage() {
           </div>
 
           {/* Clean Pill Filters */}
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full md:w-auto min-w-0" suppressHydrationWarning>
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as 'All' | 'pending' | 'approved' | 'rejected')} className="w-full md:w-auto min-w-0" suppressHydrationWarning>
             <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full md:w-fit max-w-full overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden justify-start md:justify-center">
               {['All', 'pending', 'approved', 'rejected'].map((f) => (
                 <TabsTrigger 

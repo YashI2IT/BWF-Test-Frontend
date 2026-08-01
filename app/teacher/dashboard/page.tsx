@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
@@ -46,19 +45,7 @@ import {
 import { Skeleton } from '@/app/teacher/Template/components/ui/skeleton'
 import { getTeacherDashboard, getTeacherProfile } from '../service'
 import type { TeacherDashboardResponse, TeacherWidgetSettings } from '../types'
-import { MOCK_TEACHER_DASHBOARD } from './teacherDashboardMock'
-
-/* ─── Color Map for Schedule Cards (Fix 1) ─── */
-const scheduleColorMap: Record<string, { bg: string; border: string; text: string }> = {
-  indigo:  { bg: 'bg-indigo-50',  border: 'border-indigo-100',  text: 'text-indigo-600' },
-  emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-600' },
-  orange:  { bg: 'bg-orange-50',  border: 'border-orange-100',  text: 'text-orange-600' },
-  blue:    { bg: 'bg-blue-50',    border: 'border-blue-100',    text: 'text-blue-600' },
-  red:     { bg: 'bg-red-50',     border: 'border-red-100',     text: 'text-red-600' },
-  amber:   { bg: 'bg-amber-50',   border: 'border-amber-100',   text: 'text-amber-600' },
-  violet:  { bg: 'bg-violet-50',  border: 'border-violet-100',  text: 'text-violet-600' },
-  pink:    { bg: 'bg-pink-50',    border: 'border-pink-100',    text: 'text-pink-600' },
-};
+import { toast } from '@/app/teacher/Template/components/ui/use-toast'
 
 /* ─── Animation variants ─── */
 const containerVariants: Variants = {
@@ -71,7 +58,7 @@ const itemVariants: Variants = {
 };
 
 /* ─── Tracker Tooltip ─── */
-const TrackerTooltip = ({ active, payload, label }: any) => {
+const TrackerTooltip = ({ active, payload, label }: { active?: boolean, payload?: { value: number | string }[], label?: string }) => {
   if (active && payload?.length) {
     return (
       <div className="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 min-w-[100px]">
@@ -84,12 +71,12 @@ const TrackerTooltip = ({ active, payload, label }: any) => {
 }
 
 /* ─── Assignment Progress Tooltip ─── */
-const ProgressTooltip = ({ active, payload, label }: any) => {
+const ProgressTooltip = ({ active, payload, label }: { active?: boolean, payload?: { color: string, name: string, value: number | string }[], label?: string }) => {
   if (active && payload?.length) {
     return (
       <div className="bg-white border border-slate-200 shadow-xl rounded-2xl px-5 py-3 min-w-[140px]">
         <p className="text-[13px] font-bold text-slate-900 mb-2">{label}</p>
-        {payload.map((entry: any, idx: number) => (
+        {payload.map((entry: { color: string, name: string, value: number | string }, idx: number) => (
           <div key={idx} className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -122,26 +109,6 @@ function getGreeting(): { text: string; icon: React.ReactNode } {
   if (hour < 12) return { text: 'Good Morning', icon: <Sunrise className="w-6 h-6 text-amber-500" /> };
   if (hour < 17) return { text: 'Good Afternoon', icon: <Sun className="w-6 h-6 text-orange-500" /> };
   return { text: 'Good Evening', icon: <Moon className="w-6 h-6 text-indigo-500" /> };
-}
-
-function getTaskStatusMeta(status: string) {
-  switch (status) {
-    case 'completed':
-      return { label: 'Done', dot: 'bg-emerald-500', iconBg: 'bg-emerald-50 text-emerald-600', strike: true };
-    case 'due_today':
-      return { label: 'Due Today', dot: 'bg-orange-500', iconBg: 'bg-orange-50 text-orange-600', strike: false };
-    case 'tomorrow':
-      return { label: 'Due Tomorrow', dot: 'bg-blue-500', iconBg: 'bg-blue-50 text-blue-600', strike: false };
-    default:
-      return { label: 'Pending', dot: 'bg-slate-400', iconBg: 'bg-slate-50 text-slate-600', strike: false };
-  }
-}
-
-function getSubmissionStatusLabel(status: string) {
-  if (status === 'pending') return 'Pending';
-  if (status === 'approved') return 'Approved';
-  if (status === 'rejected') return 'Rejected';
-  return 'Reviewed';
 }
 
 function DashboardSkeleton() {
@@ -364,9 +331,10 @@ export default function TeacherDashboardPage() {
         setWidgetSettings(profile.widgetSettings ?? { stats: true, schedule: true, tasks: true, progress: true });
         setTeacherName(profile.name || 'Teacher');
       } catch (err) {
-        console.error('Failed to load live data, using mock', err);
+        console.error('Failed to load live data', err);
         if (cancelled) return;
-        setData(MOCK_TEACHER_DASHBOARD);
+        toast({ title: 'Error', description: 'Failed to load dashboard data.', variant: 'destructive' });
+        setData(null);
         setWidgetSettings({ stats: true, schedule: true, tasks: true, progress: true });
         setTeacherName('Teacher');
       } finally {

@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import {
   GraduationCap,
-  CalendarClock,
   UserCheck,
   MessageSquareText,
   BookOpen,
@@ -14,34 +13,25 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   Paperclip,
-  FileText,
-  X,
-  Image as ImageIcon
+  X
 } from 'lucide-react'
 import { Card, CardContent } from '@/app/teacher/Template/components/ui/card'
 import { Input } from '@/app/teacher/Template/components/ui/input'
 import { Button } from '@/app/teacher/Template/components/ui/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/app/teacher/Template/components/ui/sheet'
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/teacher/Template/components/ui/popover"
 import { Calendar } from "@/app/teacher/Template/components/ui/calendar"
 import { format } from "date-fns"
 import { cn } from "@/app/teacher/Template/lib/utils"
 import { getAvatarUrl } from '@/app/lib/avatar'
 import {
-  getTeacherDashboard,
+  getStudents,
   getStudentOverview,
   addAssignment,
-  addSchedule,
   assignMentor,
   pushMentorNote,
 } from '../service'
-import type { TeacherDashboardResponse, StudentOverview } from '../types'
-import { MOCK_TEACHER_DASHBOARD, getMockOverview } from '../dashboard/teacherDashboardMock'
+import type { StudentOverview } from '../types'
+
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -58,7 +48,8 @@ const itemVariants: Variants = {
 };
 
 export default function TeacherStudentsPage() {
-  const [data, setData] = useState<TeacherDashboardResponse | null>(null)
+  const [students, setStudents] = useState<Record<string, unknown>[] | null>(null)
+  const [filterHome, setFilterHome] = useState("All Homes")
   const [selectedStudent, setSelectedStudent] = useState("")
   const [overview, setOverview] = useState<StudentOverview | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -72,15 +63,19 @@ export default function TeacherStudentsPage() {
     title: "",
     subject: "", dueDate: "", priority: "medium" })
   const [noteMessage, setNoteMessage] = useState("")
-  const [mentorName, setMentorName] = useState("Teacher")
+
+  const showMessage = (text: string, type: 'success' | 'error') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3000);
+  }
 
   useEffect(() => {
     async function loadData() {
       try {
-        const dashboard = await getTeacherDashboard()
-        setData(dashboard)
-      } catch (err) {
-        setData(MOCK_TEACHER_DASHBOARD)
+        const studentsData = await getStudents()
+        setStudents(studentsData)
+      } catch {
+        setStudents([])
       }
     }
     loadData()
@@ -96,10 +91,14 @@ export default function TeacherStudentsPage() {
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOverview(null) // Clear previous student's data to show skeleton
     getStudentOverview(selectedStudent)
       .then(res => setOverview(res))
-      .catch(() => setOverview(getMockOverview(selectedStudent)))
+      .catch(() => {
+        setOverview(null)
+        showMessage("Failed to load student overview", "error")
+      })
   }, [selectedStudent])
 
   // Lock body scroll when detail panel is open
@@ -114,10 +113,6 @@ export default function TeacherStudentsPage() {
     };
   }, [selectedStudent])
 
-  const showMessage = (text: string, type: 'success' | 'error') => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage(null), 3000);
-  }
 
   const handleAssignmentCreate = async () => {
     if (!selectedStudent) return showMessage("Select a student first", "error")
@@ -210,7 +205,7 @@ export default function TeacherStudentsPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {!data ? (
+          {!students ? (
             <motion.div
               key="loading"
               initial={{ opacity: 0 }}
@@ -231,58 +226,104 @@ export default function TeacherStudentsPage() {
                 </div>
               ))}
             </motion.div>
-          ) : data.students.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              <div className="bg-white rounded-[32px] p-12 shadow-sm text-center col-span-full">
-                <p className="text-slate-500 font-medium text-[15px]">No students found.</p>
-              </div>
-            </motion.div>
           ) : (
-            <motion.div
-              key="list"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              <AnimatePresence>
-                {data.students.map((student, idx) => (
-                  <motion.div 
-                    key={student._id} 
-                    layout
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    onClick={() => setSelectedStudent(student.auth_id)}
-                    className="bg-white rounded-[28px] p-6 shadow-sm flex flex-col justify-between border border-slate-200/50 hover:shadow-lg transition-shadow duration-300 h-[160px] cursor-pointer group"
+            <>
+              {/* Home Filter Toggle */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0"
+              >
+                <div className="inline-flex items-center p-1.5 bg-white/50 backdrop-blur-sm border border-slate-200/60 rounded-full shadow-sm">
+                  {["All Homes", "Kupwara Home", "Anantnag Home", "Beerwah Home", "Outside"].map((home) => (
+                    <button
+                      key={home}
+                      onClick={() => setFilterHome(home)}
+                      className={cn(
+                        "relative px-5 py-2.5 rounded-full text-[14px] font-semibold transition-all duration-300 whitespace-nowrap",
+                        filterHome === home
+                          ? "text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
+                      )}
+                    >
+                      {filterHome === home && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute inset-0 bg-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/50"
+                          initial={false}
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <span className="relative z-10">{home}</span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+
+              {(() => {
+                const filteredStudents = filterHome === "All Homes" 
+                  ? students 
+                  : students.filter(s => s.hostelName?.name === filterHome);
+
+                if (filteredStudents.length === 0) {
+                  return (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                    >
+                      <div className="bg-white rounded-[32px] p-12 shadow-sm text-center col-span-full">
+                        <p className="text-slate-500 font-medium text-[15px]">No students found for {filterHome}.</p>
+                      </div>
+                    </motion.div>
+                  )
+                }
+
+                return (
+                  <motion.div
+                    key="list"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                        <img src={getAvatarUrl(student.name)} alt="avatar" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-[17px] tracking-tight truncate">
-                        {student.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[13px] font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full truncate">
-                          {student.auth_id}
-                        </span>
-                      </div>
-                    </div>
+                    <AnimatePresence>
+                      {filteredStudents.map((student) => (
+                        <motion.div 
+                          key={student._id} 
+                          layout
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.02, translateY: -4 }}
+                          onClick={() => setSelectedStudent(student.auth_id)}
+                          className="bg-white rounded-[28px] p-6 shadow-sm flex flex-col justify-between border border-slate-200/50 hover:shadow-lg transition-shadow duration-300 h-[160px] cursor-pointer group"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                              <img src={getAvatarUrl(student.name)} alt="avatar" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-[17px] tracking-tight truncate">
+                              {student.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[13px] font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full truncate">
+                                {student.auth_id}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                )
+              })()}
+            </>
           )}
         </AnimatePresence>
 
@@ -311,11 +352,11 @@ export default function TeacherStudentsPage() {
               <div className="mb-8 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-slate-200 bg-white shrink-0">
-                    <img src={getAvatarUrl(data?.students.find(s => s.auth_id === selectedStudent)?.name || "Student")} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={getAvatarUrl(students?.find(s => s.auth_id === selectedStudent)?.name || "Student")} alt="avatar" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
-                      {data?.students.find(s => s.auth_id === selectedStudent)?.name}
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">
+                      {students?.find(s => s.auth_id === selectedStudent)?.name}
                     </h2>
                     <p className="text-sm font-bold text-slate-500">{selectedStudent}</p>
                   </div>

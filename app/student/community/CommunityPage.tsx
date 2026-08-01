@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/community.css";
 import { useProfile } from "../context/ProfileContext";
-import { getAvatar } from "../constants/avatars";
+import { SkeletonLoader } from "../components/SkeletonLoader";
 import {
   Heart,
   Send,
@@ -11,9 +11,26 @@ import {
   CheckCircle2,
   ImagePlus,
   ShieldCheck,
+  FileText,
+  Pencil,
+  Trash2,
 } from "lucide-react";
-import Image from "next/image";
+import { getAvatarUrl } from "@/app/lib/avatar";
 import { fetchCommunityPosts, postMessage, toggleLike } from "./service";
+import { motion, type Variants } from 'framer-motion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
+import { Dialog, DialogContent, DialogTitle } from '@/app/warden/Template/components/ui/dialog';
+import { X, Video } from "lucide-react";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }
+};
 
 // ── Types ──
 type Category = "Win" | "Story" | "Gratitude" | "Highlight";
@@ -28,6 +45,7 @@ interface Post {
   likes: number;
   createdAt: string;
   mediaUrl?: string;
+  mediaType?: string;
 }
 
 const mockData = {
@@ -152,8 +170,7 @@ function timeAgo(iso: string) {
 }
 
 export default function CommunityPage() {
-  const { name, avatarId, customAvatarUrl } = useProfile();
-  const av = getAvatar(avatarId as string);
+  const { name, customAvatarUrl } = useProfile();
   const firstName = name.split(" ")[0];
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -168,11 +185,24 @@ export default function CommunityPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState<{url: string, type?: string} | null>(null);
+  
+  const getMediaUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:')) return url;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+    const normalizedPath = url.replace(/\\/g, '/');
+    return `${baseUrl}/${normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath}`;
+  };
+
+
 
   const handleSubmit = async () => {
-    if (!submitText.trim() && !mediaFile) return;
+    if ((!submitText.trim() && !mediaFile) || isSubmitting) return;
 
     try {
+      setIsSubmitting(true);
       const formData = new FormData();
       formData.append("content", submitText);
       formData.append("category", submitCat);
@@ -192,8 +222,10 @@ export default function CommunityPage() {
       setPosts(data);
 
       setTimeout(() => setSubmitted(false), 4000);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError("Failed to submit post");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -204,8 +236,8 @@ export default function CommunityPage() {
       setPosts((prev) =>
         prev.map((p) => (p._id === postId ? { ...p, likes: res.likes } : p)),
       );
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Fail silently
     }
   };
 
@@ -222,11 +254,14 @@ export default function CommunityPage() {
     async function loadPosts() {
       try {
         setLoading(true);
-        const data = await fetchCommunityPosts();
+        const [data] = await Promise.all([
+          fetchCommunityPosts(),
+          new Promise((resolve) => setTimeout(resolve, 1000))
+        ]);
         console.log("Fetched posts:", data);
         setPosts(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -236,7 +271,7 @@ export default function CommunityPage() {
   }, []);
 
   if (loading) {
-    return <div className="cm-loading">Loading community...</div>;
+    return <SkeletonLoader />;
   }
 
   if (error) {
@@ -245,15 +280,30 @@ export default function CommunityPage() {
 
   return (
     <div className="cm-page">
-      {/* HEADER */}
-      <header className="cm-header">
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6 mt-2 px-4 md:px-0">
         <div>
-          <p className="cm-eyebrow">{mockData.uiStrings.pageEyebrow}</p>
-          <h1 className="cm-title">{mockData.uiStrings.pageTitle}</h1>
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+          >
+            Student Community
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-[15px] text-slate-500 mt-2"
+          >
+            Connect, share resources, and create polls.
+          </motion.p>
         </div>
-      </header>
+      </motion.div>
 
       {/* HERO */}
+      <motion.div variants={itemVariants}>
       <section className="cm-hero">
         <div className="cm-hero-blob cm-hero-blob-1" />
         <div className="cm-hero-blob cm-hero-blob-2" />
@@ -271,22 +321,38 @@ export default function CommunityPage() {
           </div>
         </div>
       </section>
+      </motion.div>
 
       {/* FILTER CHIPS */}
-      <div className="cm-filters">
-        {mockData.filters.map((f) => (
-          <button
-            key={f.key}
-            className={`cm-chip${filter === f.key ? " cm-chip--active" : ""}`}
-            onClick={() => setFilter(f.key as "all" | Category)}
-          >
-            {f.emoji} {f.label}
-          </button>
-        ))}
-      </div>
+      <motion.div variants={itemVariants} className="mb-8 overflow-x-auto hide-scrollbar">
+        <div className="flex items-center bg-slate-100/80 p-1 rounded-full w-max border border-slate-200/60 shadow-inner">
+          {mockData.filters.map((f) => {
+            const isActive = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key as "all" | Category)}
+                className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors duration-300 ${isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'}`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="community-filter-pill-student"
+                    className="absolute inset-0 bg-white rounded-full shadow-sm border border-slate-200/50"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <span className="text-sm">{f.emoji}</span>
+                  <span>{f.label}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
 
       {/* 2-COL LAYOUT */}
-      <div className="cm-layout">
+      <motion.div variants={itemVariants} className="cm-layout">
         {/* FEED */}
         <div className="cm-feed">
           {visible.length === 0 ? (
@@ -296,7 +362,7 @@ export default function CommunityPage() {
             </div>
           ) : (
             visible.map((post) => {
-              const postAv = getAvatar(post.avatarId);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const cfg = (mockData.catConfig as any)[post.category];
               return (
                 <article key={post._id} className="cm-post">
@@ -309,10 +375,10 @@ export default function CommunityPage() {
                   <div className="cm-post-head">
                     <div className="cm-post-author">
                       <div
-                        className="cm-post-av"
-                        style={{ background: postAv.bg }}
+                        className="cm-post-av overflow-hidden"
                       >
-                        {postAv.emoji}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={getAvatarUrl(post.author)} alt={post.author} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <div className="cm-post-name">
@@ -343,6 +409,24 @@ export default function CommunityPage() {
 
                   {/* Content */}
                   <p className="cm-post-text">{post.content}</p>
+
+                  {post.mediaUrl && (
+                    <div className="mt-4 rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50 relative group cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                      {post.mediaType?.startsWith('video') ? (
+                        <>
+                          <video src={getMediaUrl(post.mediaUrl)} className="w-full h-auto max-h-[400px] object-cover pointer-events-none" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                            <div className="bg-white/80 p-3 rounded-full shadow-lg backdrop-blur-sm"><Video className="w-6 h-6 text-slate-800" /></div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={getMediaUrl(post.mediaUrl)} alt="Post media" className="w-full h-auto max-h-[400px] object-cover pointer-events-none" />
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Footer */}
                   <div className="cm-post-foot">
@@ -379,33 +463,33 @@ export default function CommunityPage() {
             ) : (
               <>
                 <div className="cm-submit-author">
-                  <div className="cm-submit-av" style={{ background: av.bg }}>
-                    {customAvatarUrl ? (
-                      <Image
-                        src={customAvatarUrl}
-                        alt="Profile photo"
-                        width={30}
-                        height={30}
-                        className="cm-submit-av-img"
-                      />
-                    ) : (
-                      av.emoji
-                    )}
+                  <div className="cm-submit-av overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={customAvatarUrl || getAvatarUrl(name)}
+                      alt="Profile photo"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <span className="cm-submit-name">{firstName}</span>
                 </div>
-                <select
-                  className="cm-cat-select"
-                  value={submitCat}
-                  onChange={(e) => setSubmitCat(e.target.value as Category)}
-                >
-                  {(Object.keys(mockData.catConfig) as Category[]).map((c) => (
-                    <option key={c} value={c}>
-                      {(mockData.catConfig as any)[c].emoji}{" "}
-                      {(mockData.catConfig as any)[c].label}
-                    </option>
-                  ))}
-                </select>
+                <Select value={submitCat} onValueChange={(value) => setSubmitCat(value as Category)}>
+                  <SelectTrigger className="cm-cat-select flex h-10 items-center justify-between">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-200 bg-white">
+                    {(Object.keys(mockData.catConfig) as Category[]).map((c) => (
+                      <SelectItem key={c} value={c} className="rounded-xl focus:bg-slate-100 cursor-pointer">
+                        <span className="flex items-center gap-2">
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <span>{(mockData.catConfig as any)[c].emoji}</span>
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <span>{(mockData.catConfig as any)[c].label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <textarea
                   className="cm-submit-textarea"
                   placeholder="Write something that made you proud, grateful, or happy…"
@@ -413,35 +497,71 @@ export default function CommunityPage() {
                   onChange={(e) => setSubmitText(e.target.value)}
                   rows={4}
                 />
-                <label className="cm-media-upload">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setMediaFile(file);
-                      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
-                      setMediaPreview(file ? URL.createObjectURL(file) : null);
-                    }}
-                  />
-                  <ImagePlus size={14} />
-                  <span>
-                    {mediaFile ? "Change image" : "Add image (optional)"}
-                  </span>
-                </label>
-                {mediaPreview && (
-                  <div className="cm-media-preview-wrap">
-                    <img
-                      src={mediaPreview}
-                      alt="Selected upload"
-                      className="cm-media-preview"
+                {!mediaPreview ? (
+                  <label className="cm-media-upload">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setMediaFile(file);
+                        if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+                        setMediaPreview(file ? URL.createObjectURL(file) : null);
+                      }}
                     />
+                    <ImagePlus size={14} />
+                    <span>Add file (optional)</span>
+                  </label>
+                ) : (
+                  <div className="cm-media-preview-wrap relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 mb-3">
+                    {mediaFile?.type.startsWith('video/') ? (
+                      <video src={mediaPreview} controls className="cm-media-preview w-full" />
+                    ) : mediaFile?.type.startsWith('application/pdf') ? (
+                      <div className="flex flex-col items-center justify-center p-8">
+                         <FileText className="w-10 h-10 text-blue-500 mb-3" />
+                         <span className="text-sm font-semibold text-slate-700 text-center px-4">{mediaFile.name}</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={mediaPreview} alt="Selected upload" className="cm-media-preview w-full object-cover" />
+                      </>
+                    )}
+                    
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-full shadow-sm backdrop-blur-sm transition-colors border border-slate-200">
+                        <Pencil className="w-4 h-4" />
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*,application/pdf,video/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (file) {
+                              setMediaFile(file);
+                              if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+                              setMediaPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaFile(null);
+                          setMediaPreview(null);
+                        }}
+                        className="bg-white/90 hover:bg-rose-50 text-rose-600 p-2 rounded-full shadow-sm backdrop-blur-sm transition-colors border border-slate-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
                 <button
                   className="cm-submit-btn"
                   onClick={handleSubmit}
-                  disabled={!submitText.trim() && !mediaFile}
+                  disabled={(!submitText.trim() && !mediaFile) || isSubmitting}
                 >
                   <Send size={14} /> Send for review
                 </button>
@@ -468,7 +588,33 @@ export default function CommunityPage() {
             </div>
           </div>
         </aside>
-      </div>
+      </motion.div>
+      </motion.div>
+      <Dialog open={!!previewMedia} onOpenChange={(open) => !open && setPreviewMedia(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-none">
+          <DialogTitle className="sr-only">Media Preview</DialogTitle>
+          {previewMedia && (
+            <div className="relative w-full h-[80vh] flex items-center justify-center p-4">
+              {previewMedia.type?.startsWith('video') ? (
+                <video src={getMediaUrl(previewMedia.url)} controls className="max-w-full max-h-full rounded-lg" autoPlay />
+              ) : previewMedia.type?.includes('pdf') ? (
+                <iframe src={getMediaUrl(previewMedia.url)} className="w-full h-full bg-white rounded-lg" title="PDF Preview" />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={getMediaUrl(previewMedia.url)} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" />
+                </>
+              )}
+              <button
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors z-50"
+                onClick={() => setPreviewMedia(null)}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

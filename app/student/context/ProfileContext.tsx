@@ -41,7 +41,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const savedAvatarId = localStorage.getItem("studentAvatarId");
     const savedCustomAvatar = localStorage.getItem("studentCustomAvatar");
     const savedName = localStorage.getItem("studentName");
-    const savedId = localStorage.getItem("studentId");
+    const savedId = localStorage.getItem("studentId") || localStorage.getItem("auth_id");
     if (savedAvatarId) setAvatarId(savedAvatarId);
     if (savedCustomAvatar) setCustomAvatarUrl(savedCustomAvatar);
     if (savedName) setName(savedName);
@@ -53,12 +53,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const fetchProfile = async () => {
       if (!authId || authId === "") return;
       try {
-        const { data } = await api.get(`/students/${authId}`);
+        const { data } = await api.get(`/student/profile/me`);
         if (data && data.name) {
           setName(data.name);
         }
       } catch (error) {
-        console.error("Failed to fetch profile", error);
+        // Fail silently
       }
     };
     fetchProfile();
@@ -94,6 +94,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
 export function useProfile() {
   const ctx = useContext(ProfileContext);
-  if (!ctx) throw new Error("useProfile must be used inside <ProfileProvider>");
+  if (!ctx) {
+    // Provide a fallback for non-student dashboards (Warden, Teacher)
+    return {
+      avatarId: "bunny",
+      customAvatarUrl: null,
+      name: "Staff Member",
+      authId: "",
+      setAvatarId: () => { },
+      setCustomAvatarUrl: () => { },
+      setName: () => { },
+      setAuthId: () => { }
+    };
+  }
   return ctx;
 }

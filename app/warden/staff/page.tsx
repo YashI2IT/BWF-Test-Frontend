@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import { motion, type Variants } from 'framer-motion';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/app/warden/Template/components/ui/alert-dialog';
 import { Badge } from '@/app/warden/Template/components/ui/badge';
 import { Button } from '@/app/warden/Template/components/ui/button';
@@ -10,9 +12,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/warden/T
 import { Field, FieldLabel } from '@/app/warden/Template/components/ui/field';
 import { Input } from '@/app/warden/Template/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/app/warden/Template/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/warden/Template/components/ui/table';
 import { Textarea } from '@/app/warden/Template/components/ui/textarea';
+import { Skeleton } from '@/app/warden/Template/components/ui/skeleton';
 import api from '@/app/lib/api';
+import { getAvatarUrl } from '@/app/lib/avatar';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }
+};
 
 const ITEMS_PER_PAGE = 10;
 const STAFF_ROLES = ['Teacher', 'Academic Staff', 'Accountant', 'Driver', 'Cook', 'Guard', 'Cleaner', 'Warden Assistant', 'Maintenance', 'Other'];
@@ -102,10 +117,6 @@ const toDateInput = (value: string) => {
   return Number.isNaN(date.getTime()) ? value : date.toISOString().slice(0, 10);
 };
 
-const hostelLabel = (hostelName: StaffMember['hostelName']) => {
-  if (typeof hostelName === 'string') return hostelName;
-  return hostelName?.name || 'BWF Hostel';
-};
 
 const normalizeStaff = (staff: Partial<StaffMember> & { _id: string }): StaffMember => ({
   ...emptyStaff,
@@ -211,7 +222,7 @@ const StaffForm = ({
       </div>
     )}
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Full Name *</FieldLabel><Input value={data.name} onChange={(e) => onChange({ ...data, name: e.target.value })} placeholder="e.g. Meera Kapoor" className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
       
       {wantsAccount && (
@@ -261,17 +272,17 @@ const StaffForm = ({
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Shift</FieldLabel><Select value={data.shift} onValueChange={(value) => onChange({ ...data, shift: value as Shift })}><SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-bold text-xs"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{SHIFTS.map((shift) => <SelectItem key={shift} value={shift}>{shift}</SelectItem>)}</SelectContent></Select></Field>
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Status</FieldLabel><Select value={data.status} onValueChange={(value) => onChange({ ...data, status: value as StaffStatus })}><SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-bold text-xs"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></Field>
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Monthly Salary</FieldLabel><Input value={data.salary} onChange={(e) => onChange({ ...data, salary: e.target.value })} placeholder="Amount" className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
-      <Field className="md:col-span-2"><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Address</FieldLabel><Input value={data.address} onChange={(e) => onChange({ ...data, address: e.target.value })} className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
+      <Field className="sm:col-span-2"><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Address</FieldLabel><Input value={data.address} onChange={(e) => onChange({ ...data, address: e.target.value })} className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">Aadhaar</FieldLabel><Input value={data.adhaarCard} onChange={(e) => onChange({ ...data, adhaarCard: e.target.value })} className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
       <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[10px] uppercase tracking-wider">PAN</FieldLabel><Input value={data.panCard} onChange={(e) => onChange({ ...data, panCard: e.target.value })} className="h-10 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium text-xs" /></Field>
     </div>
 
     <div className="pt-6 border-t border-slate-100">
       <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Emergency Contact</h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[9px] uppercase">Contact Name</FieldLabel><Input value={data.emergencyContact.name} onChange={(e) => onChange({ ...data, emergencyContact: { ...data.emergencyContact, name: e.target.value } })} className="h-9 rounded-lg bg-slate-50/50 text-xs font-medium border-none" /></Field>
         <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[9px] uppercase">Contact Phone</FieldLabel><Input value={data.emergencyContact.phone} onChange={(e) => onChange({ ...data, emergencyContact: { ...data.emergencyContact, phone: e.target.value } })} className="h-9 rounded-lg bg-slate-50/50 text-xs font-medium border-none" /></Field>
-        <Field><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[9px] uppercase">Relation</FieldLabel><Input value={data.emergencyContact.relation} onChange={(e) => onChange({ ...data, emergencyContact: { ...data.emergencyContact, relation: e.target.value } })} className="h-9 rounded-lg bg-slate-50/50 text-xs font-medium border-none" /></Field>
+        <Field className="sm:col-span-2"><FieldLabel className="text-slate-700 font-bold mb-1.5 block text-[9px] uppercase">Relation</FieldLabel><Input value={data.emergencyContact.relation} onChange={(e) => onChange({ ...data, emergencyContact: { ...data.emergencyContact, relation: e.target.value } })} className="h-9 rounded-lg bg-slate-50/50 text-xs font-medium border-none" /></Field>
       </div>
     </div>
 
@@ -296,25 +307,29 @@ export default function StaffPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleSearch, setRoleSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [homeFilter, setHomeFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [wantsAccount, setWantsAccount] = useState(false);
   const [formData, setFormData] = useState<StaffMember>(emptyStaff);
 
   useEffect(() => {
     const fetchStaff = async () => {
+      setIsLoading(true);
       try {
         const res = await api.get('/warden/staff');
         setStaffMembers(res.data.map(normalizeStaff));
       } catch (error: unknown) {
         alert(getErrorMessage(error, 'Failed to load staff.'));
+      } finally {
+        setTimeout(() => setIsLoading(false), 1000);
       }
     };
-
     fetchStaff();
   }, []);
 
@@ -325,10 +340,24 @@ export default function StaffPage() {
         const matchesSearch = staff.name.toLowerCase().includes(query) || staff.contactNumber.includes(query) || staff.roleName.toLowerCase().includes(query);
         const matchesRole = !roleSearch.trim() || staff.roleName.toLowerCase().includes(roleSearch.trim().toLowerCase());
         const matchesStatus = statusFilter === 'all' || staff.status === statusFilter;
-        return matchesSearch && matchesRole && matchesStatus;
+        
+        let matchesHome = true;
+        if (homeFilter !== 'All') {
+          const searchHome = homeFilter.toLowerCase();
+          const address = staff.address?.toLowerCase() || '';
+          let hostel = '';
+          if (typeof staff.hostelName === 'string') {
+            hostel = staff.hostelName.toLowerCase();
+          } else if (staff.hostelName?.name) {
+            hostel = staff.hostelName.name.toLowerCase();
+          }
+          matchesHome = address.includes(searchHome) || hostel.includes(searchHome);
+        }
+        
+        return matchesSearch && matchesRole && matchesStatus && matchesHome;
       })
       .sort((a, b) => a.name.localeCompare(b.name) || a.roleName.localeCompare(b.roleName));
-  }, [staffMembers, searchTerm, roleSearch, statusFilter]);
+  }, [staffMembers, searchTerm, roleSearch, statusFilter, homeFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredStaff.length / ITEMS_PER_PAGE));
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -427,39 +456,108 @@ export default function StaffPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-64 rounded-xl" />
+            <Skeleton className="h-4 w-40 rounded-lg opacity-70" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        
+        {/* Filters */}
+        <div className="bg-white p-4 rounded-3xl border border-slate-200/60 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+          <Skeleton className="h-10 flex-1 w-full rounded-2xl" />
+          <Skeleton className="h-10 w-40 rounded-2xl" />
+          <Skeleton className="h-10 w-40 rounded-2xl" />
+        </div>
+
+        {/* Table/List */}
+        <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex gap-4">
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="p-4 border-b border-slate-50 flex gap-4 items-center">
+               <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+               <Skeleton className="h-8 w-full rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen text-[13px]">
-      <div className="flex items-center justify-between mb-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Staff Management</h1>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1 font-medium">
-            <span>Home</span> <span className="text-slate-300">/</span> <span className="text-indigo-500 font-semibold">Staff</span>
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              Staff Management
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2 font-medium"
+            >
+              Manage staff directories, roles, and profiles.
+            </motion.p>
           </div>
+          <Button onClick={openAddDialog} className="bg-slate-900 hover:bg-slate-800 text-white rounded-full h-10 px-8 text-xs font-bold shadow-md transition-all active:scale-95">
+            <Plus className="w-4 h-4 mr-2" /> Add Staff
+          </Button>
         </div>
-        <Button onClick={openAddDialog} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-8 text-xs font-bold shadow-md transition-all active:scale-95">
-          <Plus className="w-4 h-4 mr-2" /> Add Staff
-        </Button>
-      </div>
 
-      <Card className="border border-slate-200/60 shadow-none rounded-4xl bg-white overflow-hidden animate-scale-in">
-        <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-50">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-700">Staff List</h2>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-none font-bold px-2 py-0.5 rounded-md text-[10px]">{filteredStaff.length} Staff</Badge>
-          </div>
+        <motion.div variants={itemVariants}>
+          <Card className="border border-slate-200/60 shadow-none rounded-4xl bg-white overflow-hidden animate-scale-in">
+            <div className="p-6 flex flex-wrap items-center justify-between gap-6 border-b border-slate-50">
+              <div className="flex items-center gap-2 shrink-0">
+                <h2 className="text-base font-bold text-slate-700 whitespace-nowrap">Staff List</h2>
+                <Badge variant="outline" className="bg-slate-100 text-slate-700 border border-slate-200 font-bold px-2 py-0.5 rounded-full text-[10px]">{isLoading ? '...' : filteredStaff.length} Staff</Badge>
+              </div>
+
+              <Tabs value={homeFilter} onValueChange={(val) => { setHomeFilter(val); setCurrentPage(1); }} suppressHydrationWarning className="hidden md:block overflow-x-auto max-w-full">
+                <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center">
+                  {['All', 'Kupwara', 'Anantnag', 'Beerwah', 'Outside'].map((home) => (
+                    <TabsTrigger key={home} value={home} className="relative rounded-full h-full px-6 text-[12px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                      {homeFilter === home && (
+                        <motion.div
+                          layoutId="staff-home-filter"
+                          className="absolute inset-0 bg-white rounded-full shadow-sm"
+                          transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <span className="relative z-10">{home === 'All' ? 'All Homes' : (home === 'Outside' ? 'Outside Home' : `${home} Home`)}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
 
           <div className="flex flex-1 items-center justify-end gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-64 group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-              <Input placeholder="Search name, phone or role..." className="pl-10 h-10 bg-slate-50/50 border-slate-200 rounded-xl text-[12px] placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium transition-all" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); resetFiltersPage(); }} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+              <Input placeholder="Search name, phone or role..." className="pl-10 h-10 bg-slate-50/50 border-slate-200 rounded-full text-[12px] placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-300 font-medium transition-all" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); resetFiltersPage(); }} />
             </div>
             <div className="relative w-full md:w-40 group">
-              <Input placeholder="Search role..." className="h-10 bg-white border-slate-200 rounded-xl text-[12px] placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-indigo-100 font-medium transition-all" value={roleSearch} onChange={(e) => { setRoleSearch(e.target.value); resetFiltersPage(); }} />
+              <Input placeholder="Search role..." className="px-4 h-10 bg-white border-slate-200 rounded-full text-[12px] placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-300 font-medium transition-all" value={roleSearch} onChange={(e) => { setRoleSearch(e.target.value); resetFiltersPage(); }} />
             </div>
 
             <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); resetFiltersPage(); }}>
-              <SelectTrigger className="h-10 w-36 bg-white border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors px-4"><SelectValue placeholder="All Status" /></SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-100 shadow-xl"><SelectItem value="all">All Status</SelectItem>{STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
+              <SelectTrigger className="h-10 w-36 bg-white border-slate-200 rounded-full text-xs font-bold text-slate-500 hover:bg-slate-50 focus:ring-1 focus:ring-slate-300 transition-colors px-4"><SelectValue placeholder="All Status" /></SelectTrigger>
+              <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5"><SelectItem value="all" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">All Status</SelectItem>{STATUSES.map((status) => <SelectItem key={status} value={status} className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">{status}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>
@@ -470,18 +568,38 @@ export default function StaffPage() {
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Name</TableHead>
                 <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Role</TableHead>
-                <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Department</TableHead>                <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Shift</TableHead>
+                <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Department</TableHead>
+                <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Shift</TableHead>
                 <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Status</TableHead>
                 <TableHead className="py-4 px-8 font-bold text-slate-400 text-[11px] uppercase tracking-widest border-none">Phone</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedStaff.length > 0 ? (
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i} className="border-b border-slate-50/50 bg-white">
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[150px]" /></TableCell>
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[80px]" /></TableCell>
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[100px]" /></TableCell>
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[70px]" /></TableCell>
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[60px]" /></TableCell>
+                    <TableCell className="py-4 px-8"><Skeleton className="h-5 w-[100px]" /></TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedStaff.length > 0 ? (
                 paginatedStaff.map((staff) => (
-                  <TableRow key={staff._id} onClick={() => handleRowClick(staff)} className="border-b border-slate-50/50 bg-white hover:bg-indigo-50/40 transition-colors duration-150 cursor-pointer group">
-                    <TableCell className="py-4 px-8 font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{staff.name}</TableCell>
+                  <TableRow key={staff._id} onClick={() => handleRowClick(staff)} className="border-b border-slate-50/50 bg-white hover:bg-slate-50/50 transition-colors duration-150 cursor-pointer group">
+                    <TableCell className="py-4 px-8">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-slate-100 shadow-sm border border-slate-200/60">
+                           <img src={getAvatarUrl(staff.name)} alt={staff.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="font-bold text-slate-900 text-sm group-hover:text-slate-900 transition-colors uppercase tracking-tight">{staff.name}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="py-4 px-8 text-slate-700 font-semibold">{staff.roleName}</TableCell>
-                    <TableCell className="py-4 px-8 text-slate-600">{staff.department}</TableCell>                    <TableCell className="py-4 px-8 text-slate-600">{staff.shift}</TableCell>
+                    <TableCell className="py-4 px-8 text-slate-600">{staff.department}</TableCell>
+                    <TableCell className="py-4 px-8 text-slate-600">{staff.shift}</TableCell>
                     <TableCell className="py-4 px-8"><Badge variant="outline" className={`${statusColor(staff.status)} font-bold px-2 py-0.5 rounded-md text-[10px]`}>{staff.status}</Badge></TableCell>
                     <TableCell className="py-4 px-8 text-slate-600 tracking-wider">{staff.contactNumber}</TableCell>
                   </TableRow>
@@ -495,19 +613,22 @@ export default function StaffPage() {
           <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-slate-50">
             <div className="text-[11px] text-slate-400 font-bold tracking-tight uppercase">Showing {filteredStaff.length > 0 ? startIdx + 1 : 0} to {Math.min(startIdx + ITEMS_PER_PAGE, filteredStaff.length)} of {filteredStaff.length} staff</div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1} className="w-9 h-9 rounded-xl hover:bg-slate-100"><ChevronLeft className="w-4 h-4" /></Button>
-              <div className="flex items-center gap-1.5">{Array.from({ length: totalPages }).map((_, i) => <Button key={i + 1} variant={currentPage === i + 1 ? 'default' : 'ghost'} className={`w-9 h-9 rounded-xl text-[11px] font-bold p-0 transition-all ${currentPage === i + 1 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-100'}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</Button>)}</div>
-              <Button variant="ghost" size="icon" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="w-9 h-9 rounded-xl hover:bg-slate-100"><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1} className="w-9 h-9 rounded-full hover:bg-slate-100"><ChevronLeft className="w-4 h-4" /></Button>
+              <div className="flex items-center gap-1.5">{Array.from({ length: totalPages }).map((_, i) => <Button key={i + 1} variant={currentPage === i + 1 ? 'default' : 'ghost'} className={`w-9 h-9 rounded-full text-[11px] font-bold p-0 transition-all ${currentPage === i + 1 ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</Button>)}</div>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="w-9 h-9 rounded-full hover:bg-slate-100"><ChevronRight className="w-4 h-4" /></Button>
             </div>
           </div>
         </CardContent>
       </Card>
+      </motion.div>
+      </motion.div>
 
+      {/* Popups */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl p-0 bg-white">
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-10">
+          <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4 sticky top-0 bg-white/90 backdrop-blur-md z-10">
             <DialogHeader><DialogTitle className="text-xl font-bold text-slate-800 tracking-tight">Manage Staff Entry</DialogTitle></DialogHeader>
-            <div className="flex gap-2"><Button variant="outline" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 h-10 px-6 font-bold text-xs transition-all">Delete Account</Button><Button onClick={handleSave} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-8 font-bold text-xs shadow-md transition-all">Update Staff</Button></div>
+            <div className="flex gap-2"><Button variant="outline" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50 h-10 px-6 font-bold text-xs transition-all">Delete Account</Button><Button onClick={handleSave} className="rounded-full bg-slate-900 hover:bg-slate-800 text-white h-10 px-8 font-bold text-xs shadow-md transition-all">Update Staff</Button></div>
           </div>
           <StaffForm 
             data={formData} 
@@ -521,9 +642,9 @@ export default function StaffPage() {
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl p-0 bg-white">
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-10">
+          <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4 sticky top-0 bg-white/90 backdrop-blur-md z-10">
             <DialogHeader><DialogTitle className="text-xl font-bold text-slate-800 tracking-tight">Register New Staff</DialogTitle></DialogHeader>
-            <div className="flex gap-2"><Button variant="ghost" onClick={() => setIsAddOpen(false)} className="rounded-xl h-10 px-6 text-xs font-bold text-slate-400 hover:bg-slate-50">Cancel</Button><Button onClick={handleRegister} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-10 font-bold text-xs shadow-lg shadow-indigo-100 transition-all">Complete Registration</Button></div>
+            <div className="flex gap-2"><Button variant="ghost" onClick={() => setIsAddOpen(false)} className="rounded-full h-10 px-6 text-xs font-bold text-slate-400 hover:bg-slate-50">Cancel</Button><Button onClick={handleRegister} className="rounded-full bg-slate-900 hover:bg-slate-800 text-white h-10 px-10 font-bold text-xs shadow-md transition-all">Complete Registration</Button></div>
           </div>
           <StaffForm 
             data={formData} 

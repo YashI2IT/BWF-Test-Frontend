@@ -39,6 +39,7 @@ export default function DraggableSOS() {
   const { authId } = useProfile();
 
   const triggerSOS = async () => {
+    if (sending) return;
     setSending(true);
     try {
       const payload = {
@@ -58,7 +59,6 @@ export default function DraggableSOS() {
       }, 5000);
       setOpen(false);
     } catch (err) {
-      console.error("SOS Error:", err);
       alert("System Error: Emergency alert could not be sent electronically. Please contact the warden immediately.");
     } finally {
       setSending(false);

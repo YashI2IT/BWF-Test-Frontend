@@ -129,10 +129,13 @@ export default function ComplaintsPage() {
   const [resolutionNote, setResolutionNote] = useState('');
   const [escalateReason, setEscalateReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [viewMode, setViewMode] = useState<'active' | 'history'>('active');
   const [data, setData] = useState<Complaint[]>([]);
   const [historyData, setHistoryData] = useState<Complaint[]>([]);
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getReporterDisplay = (reporter: string) => {
     if (reporter?.startsWith('Student ')) {
@@ -157,7 +160,7 @@ export default function ComplaintsPage() {
     }
 
     // Safely convert timeline dates
-    const safeDate = (d: any) => {
+    const safeDate = (d: string | number | Date | undefined | null) => {
       if (!d) return undefined;
       try { return new Date(d).toISOString(); } catch { return undefined; }
     };
@@ -170,8 +173,8 @@ export default function ComplaintsPage() {
       role: (item.role || 'student') as ReporterRole,
       dateTime,
       location: item.location || '',
-      priority: (item.priority || 'Low') as any,
-      status: (item.status || 'OPEN') as any,
+      priority: (item.priority || 'Low') as "Low" | "Medium" | "High" | "Critical",
+      status: (item.status || 'OPEN') as "OPEN" | "RESOLVED" | "ESCALATED",
       timeline: {
         reported: safeDate(item.timeline?.reportedDate) || dateTime,
         resolved: safeDate(item.timeline?.resolvedDate),
@@ -187,8 +190,7 @@ export default function ComplaintsPage() {
       setIsLoading(true);
       const res = await api.get('/teacher/complaints');
       setData(res.data.map(normalizeComplaint));
-    } catch (error) {
-      console.error("Failed to fetch complaints:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -200,24 +202,21 @@ export default function ComplaintsPage() {
       const res = await api.get('/teacher/complaints/history');
       setHistoryData(res.data.map(normalizeComplaint));
       setCurrentPage(1); // ensure page is valid after new data
-    } catch (error) {
-      console.error("Failed to fetch history:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (viewMode === 'active') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchComplaints();
     } else {
       fetchHistory();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
-
-  const ITEMS_PER_PAGE = 10;
-  const [currentPage, setCurrentPage] = useState(1);
 
   const activeSource = viewMode === 'active' ? data : historyData;
 
@@ -244,28 +243,33 @@ export default function ComplaintsPage() {
 
   // Reset page AND filters when view mode changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setCurrentPage(1);
     setSearchTerm('');
     setStatusFilter('All');
     setPriorityFilter('All');
     setRoleFilter('All');
     setIsLoading(true); // show skeleton immediately while fetch is in-flight
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [viewMode]);
 
   // Reset page when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [searchTerm, statusFilter, priorityFilter, roleFilter]);
 
   // Handle boundary if items are removed from current page
   useEffect(() => {
     if (currentPage > totalPages) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
 
   const resolveComplaint = async (id: string, reason: string) => {
     if (!reason.trim()) return;
+    setIsSubmitting(true);
     try {
       await api.put(`/teacher/complaints/${id}/approve`, { reason });
 
@@ -273,14 +277,16 @@ export default function ComplaintsPage() {
         prev.filter(c => c.id !== id) // Remove from active once resolved
       );
       toast({ title: 'Success', description: 'Complaint successfully resolved.' });
-    } catch (error) {
-      console.error("Failed to resolve complaint:", error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to resolve complaint. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const escalateComplaint = async (id: string, reason: string) => {
     if (!reason.trim()) return;
+    setIsSubmitting(true);
     try {
       await api.put(`/teacher/complaints/${id}/reject`, { reason });
 
@@ -288,13 +294,15 @@ export default function ComplaintsPage() {
         prev.filter(c => c.id !== id) // Remove from active once escalated
       );
       toast({ title: 'Success', description: 'Complaint successfully escalated.' });
-    } catch (error) {
-      console.error("Failed to escalate complaint:", error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to escalate complaint. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const deleteComplaint = async (id: string) => {
+    setIsSubmitting(true);
     try {
       if (viewMode === 'active') {
         await api.delete(`/teacher/complaints/${id}`);
@@ -304,9 +312,10 @@ export default function ComplaintsPage() {
         setHistoryData((prev) => prev.filter((complaint) => complaint.id !== id));
       }
       toast({ title: 'Success', description: 'Complaint record permanently deleted.' });
-    } catch (error) {
-      console.error("Failed to delete complaint:", error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete complaint record. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -581,7 +590,7 @@ export default function ComplaintsPage() {
                                     <AlertDialogCancel className="rounded-xl font-bold" onClick={() => setResolutionNote('')}>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
                                       className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold shadow-sm"
-                                      disabled={!resolutionNote.trim()}
+                                      disabled={!resolutionNote.trim() || isSubmitting}
                                       onClick={() => {
                                         resolveComplaint(complaint.id, resolutionNote);
                                         setResolutionNote('');
@@ -612,7 +621,7 @@ export default function ComplaintsPage() {
                                     <AlertDialogCancel className="rounded-xl font-bold" onClick={() => setEscalateReason('')}>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
                                       className="bg-rose-500 hover:bg-rose-600 rounded-xl font-bold shadow-sm"
-                                      disabled={!escalateReason.trim()}
+                                      disabled={!escalateReason.trim() || isSubmitting}
                                       onClick={() => {
                                         escalateComplaint(complaint.id, escalateReason);
                                         setEscalateReason('');
@@ -642,6 +651,7 @@ export default function ComplaintsPage() {
                                     <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
                                     <AlertDialogAction
                                       className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-sm"
+                                      disabled={isSubmitting}
                                       onClick={() => deleteComplaint(complaint.id)}
                                     >
                                       Delete Record

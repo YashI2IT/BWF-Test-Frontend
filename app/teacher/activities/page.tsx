@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/app/teacher/Template/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/teacher/Template/components/ui/dialog';
 import { MoreVertical, Edit2, Trash2, Loader2, Paperclip, FileText, X, ExternalLink } from 'lucide-react';
-import { getStudents } from '../service';
+import { getTeacherDashboard } from '../service';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useRef } from 'react';
 
@@ -58,6 +58,7 @@ export default function ActivitiesPage() {
   const [data, setData] = useState<Task[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', dueDate: '', assignedTo: '' });
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null);
@@ -82,14 +83,13 @@ export default function ActivitiesPage() {
 
   async function loadData() {
     try {
-      const [tasksRes, studentsRes] = await Promise.all([
+      const [tasksRes, dashboardRes] = await Promise.all([
         api.get('/teacher/tasks'),
-        getStudents()
+        getTeacherDashboard()
       ]);
       setData(tasksRes.data);
-      setStudents(studentsRes);
-    } catch (error) {
-      console.error(error);
+      setStudents(dashboardRes?.students || []);
+    } catch {
       toast({ title: 'Error', description: 'Failed to load custom tasks.', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -108,6 +108,7 @@ export default function ActivitiesPage() {
       return;
     }
     
+    setIsSubmitting(true);
     try {
       const payload = new FormData();
       payload.append('title', formData.title);
@@ -128,9 +129,10 @@ export default function ActivitiesPage() {
       
       toast({ title: 'Success', description: 'Task successfully assigned.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to assign task.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -140,8 +142,7 @@ export default function ActivitiesPage() {
       await api.put(`/teacher/tasks/${taskId}/verify`);
       toast({ title: 'Verified', description: 'Task successfully verified.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to verify task.', variant: 'destructive' });
       loadData();
     }
@@ -193,8 +194,7 @@ export default function ActivitiesPage() {
       setEditFilePreview(null);
       toast({ title: 'Success', description: 'Task updated successfully.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to update task.', variant: 'destructive' });
     } finally {
       setUpdating(false);
@@ -215,8 +215,7 @@ export default function ActivitiesPage() {
       setDeletingTaskId('');
       toast({ title: 'Success', description: 'Task deleted successfully.' });
       loadData();
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete task.', variant: 'destructive' });
     } finally {
       setDeleting(false);
@@ -414,8 +413,9 @@ export default function ActivitiesPage() {
                 </div>
                 <div className="p-8 pt-4 border-t border-slate-100 shrink-0 bg-white relative z-10">
                   <motion.div variants={itemVariants} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button type="submit" className="w-full h-12 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[15px] transition-colors shadow-sm">
-                      Assign task
+                    <Button disabled={isSubmitting} type="submit" className="w-full h-12 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[15px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                      {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isSubmitting ? 'Assigning...' : 'Assign task'}
                     </Button>
                   </motion.div>
                 </div>
@@ -717,7 +717,7 @@ export default function ActivitiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl text-rose-600">Delete Task?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 mt-2 font-medium">
-              This action cannot be undone. This will permanently remove the task from the student's dashboard.
+              This action cannot be undone. This will permanently remove the task from the student&apos;s dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex gap-3">

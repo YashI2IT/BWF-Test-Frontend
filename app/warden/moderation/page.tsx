@@ -1,18 +1,35 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, Check, X, Forward, Loader2, Trash2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { motion, type Variants } from 'framer-motion';
 import { Card, CardContent } from '@/app/warden/Template/components/ui/card';
 import { Button } from '@/app/warden/Template/components/ui/button';
 import { Badge } from '@/app/warden/Template/components/ui/badge';
 import { Input } from '@/app/warden/Template/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/app/warden/Template/components/ui/dialog';
 import { Textarea } from '@/app/warden/Template/components/ui/textarea';
+import { Skeleton } from '@/app/warden/Template/components/ui/skeleton';
 import api from '@/app/lib/api';
 import { useEffect } from 'react';
+import { getAvatarUrl } from '@/app/lib/avatar';
 
-type Status = 'Pending' | 'Approved' | 'Rejected' | 'Forwarded';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }
+};
+
+type Status = 'Pending' | 'Approved' | 'Rejected';
 
 type PostType = 'text' | 'poll';
 
@@ -33,43 +50,12 @@ interface Post {
   tags?: string[];
   pollOptions?: PollOption[];
   rejectionReason?: string;
-  forwardReason?: string;
   approvedBy?: string;
   rejectedBy?: string;
-  forwardedBy?: string;
+  mediaUrl?: string;
+  mediaType?: string;
 }
 
-const STATUS_OPTIONS = ['All', 'Pending', 'Approved', 'Rejected', 'Forwarded'];
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Approved':
-      return 'bg-green-50 text-green-700 border border-green-100';
-    case 'Pending':
-      return 'bg-amber-50 text-amber-700 border border-amber-100';
-    case 'Rejected':
-      return 'bg-red-50 text-red-700 border border-red-100';
-    case 'Forwarded':
-      return 'bg-slate-100 text-slate-800 border border-slate-200';
-    default:
-      return 'bg-slate-50 text-slate-700 border border-slate-200';
-  }
-};
-
-const getInitialColor = (name: string) => {
-  const colors = [
-    'bg-red-100 text-red-700',
-    'bg-blue-100 text-blue-700',
-    'bg-green-100 text-green-700',
-    'bg-purple-100 text-purple-700',
-    'bg-yellow-100 text-yellow-700',
-    'bg-pink-100 text-pink-700',
-    'bg-indigo-100 text-indigo-700',
-    'bg-cyan-100 text-cyan-700',
-  ];
-  const charCode = name.charCodeAt(0);
-  return colors[charCode % colors.length];
-};
 
 const truncateText = (text: string, charLimit = 200) => {
   return text.length > charLimit ? text.substring(0, charLimit) + '...' : text;
@@ -77,6 +63,14 @@ const truncateText = (text: string, charLimit = 200) => {
 
 const isTextTruncated = (text: string, charLimit = 200) => {
   return text.length > charLimit;
+};
+
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  const normalizedPath = url.replace(/\\/g, '/');
+  return `${baseUrl}/${normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath}`;
 };
 
 const renderContent = (content: string) => {
@@ -95,16 +89,15 @@ const renderContent = (content: string) => {
 
 export default function ModerationPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [forwardReason, setForwardReason] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [dialogType, setDialogType] = useState<'approve' | 'reject' | 'forward' | 'delete' | null>(null);
+  const [dialogType, setDialogType] = useState<'approve' | 'reject' | 'delete' | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [previewMedia, setPreviewMedia] = useState<{url: string, type?: string} | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -114,22 +107,22 @@ export default function ModerationPage() {
         id: item._id,
         author: item.author,
         content: item.content,
-        dateTime: `${new Date(item.date).toLocaleDateString()} ${item.time}`,
-        status: item.status,
-        type: item.type,
-        hashtags: item.tags, // backend uses tags for hashtags
-        pollOptions: item.pollOptions,
-        rejectionReason: item.rejectionReason,
-        forwardReason: item.forwardReason,
-        approvedBy: item.approvedBy?.name,
-        rejectedBy: item.rejectedBy?.name,
-        forwardedBy: item.forwardedBy?.name
+        dateTime: new Date(item.createdAt).toLocaleString(),
+        status: 'Pending',
+        type: item.category,
+        hashtags: [], 
+        pollOptions: [],
+        rejectionReason: '',
+        approvedBy: '',
+        rejectedBy: '',
+        mediaUrl: item.mediaUrl,
+        mediaType: item.mediaType
       }));
       setPosts(normalizedData);
     } catch (error) {
       console.error("Failed to fetch posts:", error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 1000);
     }
   };
 
@@ -141,13 +134,11 @@ export default function ModerationPage() {
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchesStatus = statusFilter === 'All' || post.status === statusFilter;
-      const matchesSearch = `${post.author} ${post.content}`
+      return `${post.author} ${post.content}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      return matchesStatus && matchesSearch;
     });
-  }, [posts, statusFilter, searchTerm]);
+  }, [posts, searchTerm]);
 
   const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
   const paginatedPosts = filteredPosts.slice(
@@ -155,21 +146,11 @@ export default function ModerationPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const updateStatus = (id: string, status: Status, reason?: string) => {
-    setPosts((current) =>
-      current.map((post) => {
-        if (post.id !== id) return post;
-        return {
-          ...post,
-          status,
-          rejectionReason: status === 'Rejected' ? reason : post.rejectionReason,
-          forwardReason: status === 'Forwarded' ? reason : post.forwardReason,
-        };
-      })
-    );
+  const removePost = (id: string) => {
+    setPosts((current) => current.filter((post) => post.id !== id));
   };
 
-  const openDialog = (postId: string, type: 'approve' | 'reject' | 'forward') => {
+  const openDialog = (postId: string, type: 'approve' | 'reject') => {
     setSelectedPostId(postId);
     setDialogType(type);
     setIsOpen(true);
@@ -181,18 +162,14 @@ export default function ModerationPage() {
     try {
       if (dialogType === 'approve') {
         await api.put(`/warden/moderation/${selectedPostId}/approve`);
-        updateStatus(selectedPostId, 'Approved');
+        removePost(selectedPostId);
       } else if (dialogType === 'reject' && rejectionReason.trim()) {
         await api.put(`/warden/moderation/${selectedPostId}/reject`, { reason: rejectionReason.trim() });
-        updateStatus(selectedPostId, 'Rejected', rejectionReason.trim());
+        removePost(selectedPostId);
         setRejectionReason('');
-      } else if (dialogType === 'forward' && forwardReason.trim()) {
-        await api.put(`/warden/moderation/${selectedPostId}/forward`, { reason: forwardReason.trim() });
-        updateStatus(selectedPostId, 'Forwarded', forwardReason.trim());
-        setForwardReason('');
       } else if (dialogType === 'delete') {
         await api.delete(`/warden/moderation/${selectedPostId}`);
-        setPosts((prev) => prev.filter((p) => p.id !== selectedPostId));
+        removePost(selectedPostId);
       }
       setIsOpen(false);
       setDialogType(null);
@@ -204,22 +181,80 @@ export default function ModerationPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-64 rounded-xl" />
+            <Skeleton className="h-4 w-40 rounded-lg opacity-70" />
+          </div>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end mb-6">
+          <div className="flex-1 w-full">
+            <Skeleton className="h-4 w-16 mb-2 rounded-md" />
+            <Skeleton className="h-12 w-full rounded-full" />
+          </div>
+        </div>
+
+        {/* List of cards */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-sm">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32 rounded-md" />
+                    <Skeleton className="h-3 w-24 rounded-md" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-3/4 mb-2 rounded-md" />
+              <Skeleton className="h-4 w-1/2 mb-6 rounded-md" />
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-24 rounded-xl" />
+                <Skeleton className="h-9 w-24 rounded-xl" />
+                <Skeleton className="h-9 w-24 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen text-[13px]">
-      <div className="flex items-center justify-between mb-8">
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Community Moderation</h1>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1 font-medium">
-            <span>Home</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-indigo-500 font-semibold">Moderation</span>
-          </div>
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+          >
+            Community Moderation
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-[15px] text-slate-500 mt-2 font-medium"
+          >
+            Review and moderate community posts and content.
+          </motion.p>
         </div>
       </div>
 
-      <div className="space-y-4 mb-6">
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
+      <motion.div variants={itemVariants} className="space-y-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+          <div className="flex-1 w-full">
             <label className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 block">Search</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -229,34 +264,35 @@ export default function ModerationPage() {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search posts by author or content..."
-                className="pl-10 h-12 rounded-2xl bg-slate-50"
+                placeholder="Search pending posts by author or content..."
+                className="pl-10 h-12 rounded-full bg-white border-slate-200"
               />
             </div>
           </div>
-          <div className="w-40">
-            <label className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 block">Status</label>
-            <Select value={statusFilter} onValueChange={(value) => {
-              setStatusFilter(value);
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm text-slate-600">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="space-y-4">
+      <motion.div variants={itemVariants} className="space-y-4">
         {isLoading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex gap-3 flex-1">
+                      <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : paginatedPosts.length === 0 ? (
           <Card className="border border-dashed py-12 text-center">
@@ -266,45 +302,45 @@ export default function ModerationPage() {
           paginatedPosts.map((post) => {
             const isExpanded = expandedPostId === post.id;
             const isTruncated = isTextTruncated(post.content);
-            const displayContent = isExpanded ? post.content : truncateText(post.content);
 
             return (
-              <Card key={post.id} className="hover:shadow-md transition-shadow">
+              <Card key={post.id} className="hover:shadow-md transition-shadow rounded-3xl border-slate-200/60">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex gap-3 flex-1">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${getInitialColor(post.author)}`}>
-                          {post.author.charAt(0)}
-                        </div>
+                        <img 
+                          src={getAvatarUrl(post.author)} 
+                          alt={post.author} 
+                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover border border-slate-100 bg-slate-50" 
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900">{post.author}</p>
                           <p className="text-xs text-slate-500">{post.dateTime}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`${getStatusColor(post.status)} flex-shrink-0`}>
-                          {post.status}
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border border-amber-100 flex-shrink-0">
+                          Pending
                         </Badge>
-                        {(post.status === 'Approved' || post.status === 'Rejected') && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl"
-                            onClick={() => {
-                              setSelectedPostId(post.id);
-                              setDialogType('delete');
-                              setIsOpen(true);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
                       </div>
                     </div>
 
+                    <p className="text-slate-800 text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap font-medium">
+                      {renderContent(
+                        expandedPostId === post.id
+                          ? post.content
+                          : truncateText(post.content, 200)
+                      )}
+                    </p>
+                    
+                    {post.mediaUrl && (
+                      <div className="relative h-64 w-full rounded-2xl overflow-hidden shadow-sm border border-slate-100 mt-4 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                        <img src={getMediaUrl(post.mediaUrl)} alt="Post attachment" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
                     <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {renderContent(displayContent)}
                       {isTruncated && !isExpanded && (
                         <button
                           onClick={() => setExpandedPostId(post.id)}
@@ -343,69 +379,32 @@ export default function ModerationPage() {
                       </div>
                     )}
 
-                    {post.status === 'Rejected' && post.rejectionReason && (
-                      <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">
-                        <p className="font-semibold flex justify-between items-center">
-                          <span>Rejection Reason</span>
-                          {post.rejectedBy && <span className="text-[10px] opacity-70">By: {post.rejectedBy}</span>}
-                        </p>
-                        <p className="text-red-600 text-xs mt-1 break-words">{post.rejectionReason}</p>
-                      </div>
-                    )}
-
-                    {post.status === 'Forwarded' && post.forwardReason && (
-                      <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
-                        <p className="font-semibold flex justify-between items-center">
-                          <span>Forwarded Note</span>
-                          {post.forwardedBy && <span className="text-[10px] opacity-70">By: {post.forwardedBy}</span>}
-                        </p>
-                        <p className="text-slate-600 text-xs mt-1 break-words">{post.forwardReason}</p>
-                      </div>
-                    )}
-
-                    {post.status === 'Approved' && post.approvedBy && (
-                      <div className="text-[11px] text-slate-400 font-medium italic">
-                        Approved by {post.approvedBy}
-                      </div>
-                    )}
-
-                    {post.status === 'Pending' && (
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs"
-                          onClick={() => openDialog(post.id, 'approve')}
-                        >
-                          <Check className="w-3 h-3 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 text-xs"
-                          onClick={() => openDialog(post.id, 'forward')}
-                        >
-                          <Forward className="w-3 h-3 mr-1" />
-                          Forward
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-slate-700 hover:bg-red-50 hover:border-red-200 hover:text-red-700 text-xs"
-                          onClick={() => openDialog(post.id, 'reject')}
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white text-xs rounded-full px-4"
+                        onClick={() => openDialog(post.id, 'approve')}
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-slate-700 hover:bg-red-50 hover:border-red-200 hover:text-red-700 text-xs rounded-full px-4"
+                        onClick={() => openDialog(post.id, 'reject')}
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             );
           })
         )}
-      </div>
+      </motion.div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-8">
@@ -445,34 +444,26 @@ export default function ModerationPage() {
             <DialogTitle>
               {dialogType === 'approve' && 'Approve Post'}
               {dialogType === 'reject' && 'Reject Post'}
-              {dialogType === 'forward' && 'Forward to Admin'}
               {dialogType === 'delete' && 'Delete Moderation Record'}
             </DialogTitle>
             <DialogDescription>
               {dialogType === 'approve' && 'Are you sure you want to approve this post?'}
               {dialogType === 'reject' && 'Please provide a rejection reason.'}
-              {dialogType === 'forward' && 'Please provide a note for the admin.'}
               {dialogType === 'delete' && 'This will permanently remove this moderation record. This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
 
-          {(dialogType === 'reject' || dialogType === 'forward') && (
+          {dialogType === 'reject' && (
             <div className="space-y-2 py-4">
               <Textarea
-                placeholder={dialogType === 'reject' ? 'Why is this being rejected?' : 'Why should this be forwarded?'}
-                value={dialogType === 'reject' ? rejectionReason : forwardReason}
-                onChange={(e) => {
-                  if (dialogType === 'reject') {
-                    setRejectionReason(e.target.value);
-                  } else {
-                    setForwardReason(e.target.value);
-                  }
-                }}
+                placeholder={'Why is this being rejected?'}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
                 className="min-h-24 break-all p-3"
                 maxLength={200}
               />
               <p className="text-[10px] text-slate-400 text-right">
-                {(dialogType === 'reject' ? rejectionReason : forwardReason).length}/200
+                {rejectionReason.length}/200
               </p>
             </div>
           )}
@@ -484,8 +475,7 @@ export default function ModerationPage() {
             <Button
               onClick={handleConfirm}
               disabled={
-                (dialogType === 'reject' && !rejectionReason.trim()) ||
-                (dialogType === 'forward' && !forwardReason.trim())
+                (dialogType === 'reject' && !rejectionReason.trim())
               }
               className={
                 dialogType === 'reject' || dialogType === 'delete'
@@ -495,10 +485,34 @@ export default function ModerationPage() {
             >
               {dialogType === 'approve' && 'Approve'}
               {dialogType === 'reject' && 'Reject'}
-              {dialogType === 'forward' && 'Forward'}
               {dialogType === 'delete' && 'Delete'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </motion.div>
+      <Dialog open={!!previewMedia} onOpenChange={(open) => !open && setPreviewMedia(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-none">
+          <DialogTitle className="sr-only">Media Preview</DialogTitle>
+          {previewMedia && (
+            <div className="relative w-full h-[80vh] flex items-center justify-center p-4">
+              {previewMedia.type?.startsWith('video') ? (
+                <video src={getMediaUrl(previewMedia.url)} controls className="max-w-full max-h-full rounded-lg" autoPlay />
+              ) : previewMedia.type?.includes('pdf') ? (
+                <iframe src={getMediaUrl(previewMedia.url)} className="w-full h-full bg-white rounded-lg" title="PDF Preview" />
+              ) : (
+                <img src={getMediaUrl(previewMedia.url)} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" />
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 text-white hover:bg-white/20 rounded-full z-50 bg-black/20"
+                onClick={() => setPreviewMedia(null)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

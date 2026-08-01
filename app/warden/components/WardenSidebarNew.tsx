@@ -1,160 +1,189 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
+  MessageSquare,
+  LayoutDashboard,
+  Users,
+  Calendar,
   AlertCircle,
   BriefcaseBusiness,
-  Calendar,
-  ChevronDown,
   DollarSign,
-  Home,
-  MessageSquare,
   ShieldCheck,
-  User,
-  Users,
-  X,
-} from 'lucide-react';
-import { Button } from '@/app/warden/Template/components/ui/button';
+  Sparkles,
+  LayoutGrid,
+  ListTodo,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/app/warden/Template/components/ui/sidebar";
+import { useSidebar } from "@/app/warden/Template/components/ui/sidebar";
+import { Button } from "@/app/warden/Template/components/ui/button";
 
-const mainItems = [
-  { icon: MessageSquare, label: 'Community', href: '/warden/community' },
-  { icon: Home, label: 'Dashboard', href: '/warden/dashboard' },
-];
-
-const manageItems = [
-  { icon: Users, label: 'Students', href: '/warden/students' },
-  { icon: BriefcaseBusiness, label: 'Staff', href: '/warden/staff' },
-  { icon: Calendar, label: 'Activities', href: '/warden/activities' },
-  { icon: DollarSign, label: 'Expenses', href: '/warden/expenses' },
-];
-
-const workspaceItems = [
-  { icon: AlertCircle, label: 'Complaints', href: '/warden/complaints', color: 'bg-rose-50 text-rose-700' },
-  { icon: ShieldCheck, label: 'Moderation', href: '/warden/moderation', color: 'bg-blue-50 text-blue-700' },
-];
-
-type WardenSidebarProps = {
-  isMobileOpen?: boolean;
-  onCloseMobile?: () => void;
+type MenuItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
 };
 
-export function WardenSidebar({ isMobileOpen = false, onCloseMobile }: WardenSidebarProps) {
+type MenuGroup = {
+  label: string;
+  items: MenuItem[];
+};
+
+const menuGroups: MenuGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/warden/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/warden/community", label: "Community", icon: MessageSquare },
+      { href: "/warden/community-wall", label: "Broadcast Notices", icon: Sparkles },
+    ]
+  },
+  {
+    label: "Manage",
+    items: [
+      { href: "/warden/students", label: "Students", icon: Users },
+      { href: "/warden/staff", label: "Staff", icon: BriefcaseBusiness },
+      { href: "/warden/activities", label: "Activities", icon: Calendar },
+      { href: "/warden/expenses", label: "Expenses", icon: DollarSign },
+    ]
+  },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/warden/complaints", label: "Complaints", icon: AlertCircle },
+      { href: "/warden/moderation", label: "Moderation", icon: ShieldCheck },
+    ]
+  }
+];
+
+export function WardenSidebar() {
   const pathname = usePathname();
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(true);
+  const { setOpenMobile, isMobile } = useSidebar();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    'Overview': true,
+    'Manage': true,
+    'Workspace': true
+  });
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const isRouteActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
-  const navLinkClass = (isActive: boolean) =>
-    `flex h-9 items-center gap-3 rounded-xl px-2.5 text-[13px] transition-colors ${
-      isActive ? 'bg-blue-50 text-slate-950 font-semibold' : 'text-slate-700 hover:bg-slate-50'
-    }`;
-
-  const sidebarContent = (
-    <>
-      <div className="px-5 py-4 border-b border-slate-100">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
-              <span className="text-[14px] font-bold leading-none">W</span>
-            </div>
-            <p className="truncate text-[15px] font-medium text-slate-900">Warden</p>
-          </div>
-
-          <Button variant="ghost" size="icon" onClick={onCloseMobile} className="h-8 w-8 rounded-lg md:hidden">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden px-4 py-4 md:overflow-hidden max-md:overflow-y-auto">
-        <nav className="space-y-1.5">
-          {mainItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = isRouteActive(item.href);
-
-            return (
-              <Link key={item.href} href={item.href} onClick={onCloseMobile} className={navLinkClass(isActive)}>
-                <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="mt-5">
-          <p className="px-2.5 pb-1.5 text-[12px] font-medium text-slate-500">Manage</p>
-          <nav className="space-y-1.5">
-            {manageItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = isRouteActive(item.href);
-
-              return (
-                <Link key={item.href} href={item.href} onClick={onCloseMobile} className={navLinkClass(isActive)}>
-                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => setIsWorkspaceOpen((current) => !current)}
-            className="flex w-full items-center gap-2 px-2.5 pb-1.5 text-left text-[12px] font-medium text-slate-700"
-          >
-            <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${isWorkspaceOpen ? '' : '-rotate-90'}`} />
-            <span>Workspaces</span>
-          </button>
-
-          {isWorkspaceOpen && (
-            <nav className="space-y-1.5">
-              {workspaceItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = isRouteActive(item.href);
-
-                return (
-                  <Link key={item.href} href={item.href} onClick={onCloseMobile} className={navLinkClass(isActive)}>
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${item.color}`}>
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-auto border-t border-slate-100 px-4 py-3">
-        <Link href="/warden/profile" onClick={onCloseMobile} className={navLinkClass(isRouteActive('/warden/profile'))}>
-          <User className={`h-4 w-4 ${isRouteActive('/warden/profile') ? 'text-blue-600' : 'text-slate-500'}`} />
-          <span className="truncate">Profile</span>
-        </Link>
-      </div>
-    </>
-  );
-
   return (
     <>
-      <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col border-r border-slate-100 bg-white">
-        {sidebarContent}
-      </aside>
+      <Sidebar className="border-r border-slate-200 bg-[#F3F4F6]">
+        <SidebarHeader className="pt-8 pb-6 px-6 border-none">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100">
+              <LayoutDashboard className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col">
+              <p className="font-bold text-[18px] text-slate-900 tracking-tight leading-tight">BWF</p>
+              <p className="text-[12px] font-medium text-slate-500">Warden Portal</p>
+            </div>
+          </div>
+        </SidebarHeader>
 
-      {isMobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-slate-950/45" onClick={onCloseMobile} />
-          <aside className="absolute left-0 top-0 flex h-full w-72 max-w-[82vw] flex-col rounded-r-2xl border-r border-slate-100 bg-white shadow-2xl animate-slide-in-left">
-            {sidebarContent}
-          </aside>
-        </div>
-      )}
+        <SidebarContent className="px-4 py-2">
+          {menuGroups.map((group, groupIndex) => (
+            <SidebarGroup key={groupIndex} className="pt-0 pb-6 border-none px-0">
+              {group.label && (
+                <SidebarGroupLabel 
+                  className="flex items-center justify-between text-slate-800 font-semibold text-[15px] px-2 mb-3 h-auto py-0 cursor-pointer hover:text-blue-600 transition-colors select-none"
+                  onClick={() => toggleGroup(group.label)}
+                >
+                  <div className="flex items-center gap-3">
+                    {group.label === 'Overview' && <LayoutGrid className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label === 'Manage' && <Users className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label === 'Workspace' && <ListTodo className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label}
+                  </div>
+                  <div className={`w-4 h-4 flex items-center justify-center text-slate-400 transition-transform duration-200 ${!expandedGroups[group.label] ? '-rotate-90' : ''}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </SidebarGroupLabel>
+              )}
+              {expandedGroups[group.label] && (
+                <SidebarGroupContent className="pl-6 relative">
+                  <SidebarMenu className="relative z-10 gap-0">
+                    {group.items.map((item, index) => {
+                      const isActive = isRouteActive(item.href);
+                      const isFirst = index === 0;
+                      const isLast = index === group.items.length - 1;
+                      
+                      return (
+                        <SidebarMenuItem
+                          key={item.href}
+                          className="relative mb-1"
+                        >
+                          {/* Perfect SVG Tree Line */}
+                          <svg 
+                            className="absolute pointer-events-none" 
+                            style={{ left: '-24px', top: 0, width: '24px', height: '100%', overflow: 'visible' }}
+                          >
+                            {/* Top part of vertical line */}
+                            <line 
+                              x1="17" 
+                              y1={isFirst ? "-16" : "-4"} 
+                              x2="17" 
+                              y2={isLast ? "8" : "48"} 
+                              stroke="#cbd5e1" 
+                              strokeWidth="2" 
+                            />
+                            {/* The curved branch */}
+                            <path 
+                              d="M 17 8 Q 17 20 24 20" 
+                              fill="none" 
+                              stroke="#cbd5e1" 
+                              strokeWidth="2" 
+                            />
+                          </svg>
+
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            className={`transition-all duration-200 h-10 px-4 rounded-xl flex items-center justify-between ${
+                              isActive
+                                ? "bg-white text-slate-900 font-semibold shadow-sm shadow-slate-200/50"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 font-medium"
+                            }`}
+                            onClick={() => {
+                              if (isMobile) setOpenMobile(false);
+                            }}
+                          >
+                            <Link href={item.href} className="w-full flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <item.icon className={`w-[18px] h-[18px] stroke-[2px] ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                                <span className={`text-[14.5px] ${isActive ? 'text-blue-700 font-bold' : ''}`}>{item.label}</span>
+                              </div>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+
+
+      </Sidebar>
     </>
   );
 }
-
-

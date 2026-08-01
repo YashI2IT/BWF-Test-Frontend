@@ -33,12 +33,23 @@ import {
 import { useSidebar } from "@/app/teacher/Template/components/ui/sidebar";
 import { Button } from "@/app/teacher/Template/components/ui/button";
 
-const menuGroups = [
+type MenuItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+};
+
+type MenuGroup = {
+  label: string;
+  items: MenuItem[];
+};
+
+const menuGroups: MenuGroup[] = [
   {
     label: "Overview",
     items: [
       { href: "/teacher/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/teacher/community", label: "Community", icon: MessageSquare, badge: { count: 3, color: 'bg-orange-200 text-orange-700' } },
+      { href: "/teacher/community", label: "Community", icon: MessageSquare },
       { href: "/teacher/notices", label: "Notices", icon: Bell },
     ]
   },
@@ -47,7 +58,7 @@ const menuGroups = [
     items: [
       { href: "/teacher/students", label: "Students", icon: Users },
       { href: "/teacher/submissions", label: "Assignments", icon: FileCheck2 },
-      { href: "/teacher/schedule", label: "Schedule", icon: Calendar, badge: { count: 8, color: 'bg-emerald-200 text-emerald-700' } },
+      { href: "/teacher/schedule", label: "Schedule", icon: Calendar },
       { href: "/teacher/notes", label: "Mentor Notes", icon: FileText },
     ]
   },
@@ -107,8 +118,8 @@ export function TeacherSidebar() {
                 </SidebarGroupLabel>
               )}
               {expandedGroups[group.label] && (
-                <SidebarGroupContent className="pl-6 relative overflow-hidden">
-                  <SidebarMenu className="relative z-10">
+                <SidebarGroupContent className="pl-6 relative">
+                  <SidebarMenu className="relative z-10 gap-0">
                     {group.items.map((item, index) => {
                       const isActive = pathname === item.href;
                       const isFirst = index === 0;
@@ -157,11 +168,6 @@ export function TeacherSidebar() {
                                 <item.icon className={`w-[18px] h-[18px] stroke-[2px] ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
                                 <span className={`text-[14.5px] ${isActive ? 'text-blue-700 font-bold' : ''}`}>{item.label}</span>
                               </div>
-                              {item.badge && (
-                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${item.badge.color}`}>
-                                  {item.badge.count}
-                                </span>
-                              )}
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>

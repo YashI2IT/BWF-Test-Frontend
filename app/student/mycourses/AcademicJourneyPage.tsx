@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import "../styles/mycourses.css";
 import { useProfile } from "../context/ProfileContext";
 import { getAvatar } from "../constants/avatars";
+import { SkeletonLoader } from "../components/SkeletonLoader";
 import {
   AlertCircle,
   ChevronDown,
@@ -14,7 +16,12 @@ import {
   TrendingUp,
   RotateCcw,
   Sparkles,
+  UploadCloud,
+  X,
+  Paperclip
 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/app/teacher/Template/components/ui/dialog";
+import { Button } from "@/app/teacher/Template/components/ui/button";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -38,10 +45,12 @@ interface Assignment {
   _id: string;
   title: string;
   subject: string;
-  status: "todo" | "student_submitted" | "under_review" | "verified";
+  status: "todo" | "student_submitted" | "under_review" | "verified" | "pending" | "approved" | "rejected" | "not_submitted";
   dueDate: string;
   submittedDate?: string;
   rejectionNote?: string;
+  fileUrl?: string;
+  fileType?: string;
 }
 
 const mockData = {
@@ -191,6 +200,34 @@ const mockData = {
       border: "#6ee7b7",
       icon: "⭐",
     },
+    not_submitted: {
+      label: "Not Submitted",
+      color: "#9ca3af",
+      bg: "#f3f4f6",
+      border: "#e5e7eb",
+      icon: "➖",
+    },
+    pending: {
+      label: "Pending",
+      color: "#dc2626",
+      bg: "#fee2e2",
+      border: "#fca5a5",
+      icon: "📝",
+    },
+    approved: {
+      label: "Approved",
+      color: "#065f46",
+      bg: "#dcfce7",
+      border: "#6ee7b7",
+      icon: "⭐",
+    },
+    rejected: {
+      label: "Needs Revision",
+      color: "#92400e",
+      bg: "#fef3c7",
+      border: "#fde68a",
+      icon: "🔄",
+    },
   },
   cheers: [
     "Great work! Keep it up! 💪",
@@ -237,11 +274,16 @@ const mockData = {
 
 // TODO: Replace with GET /api/student/courses/:auth_id/assignments
 
-const YEAR = new Date().getFullYear();
 const TODAY = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
 function subCfg(s: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (mockData.subjectCfg as any)[s] ?? mockData.subjectCfg.Default;
+}
+
+function stCfg(s: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (mockData.statusCfg as any)[s] ?? mockData.statusCfg.not_submitted;
 }
 
 function fmtDate(d: string) {
@@ -292,12 +334,18 @@ export default function AcademicJourney() {
   > | null>(null);
   const [cheerMsg, setCheerMsg] = useState<string | null>(null);
 
+  // File Upload Modal
+  const [submitModalTask, setSubmitModalTask] = useState<Assignment | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   // Tab 2 — expand date group
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   // ── Submit handler (shared by Tab1 + Tab2) ──
   const handleSubmit = useCallback(
-    async (id: string) => {
+    async (id: string, file: File | null = null) => {
+      setSubmitModalTask(null);
+      setSelectedFile(null);
       if (undoTimer) clearTimeout(undoTimer);
 
       // optimistic UI update
@@ -315,9 +363,9 @@ export default function AcademicJourney() {
       setUndoId(id);
 
       try {
-        await submitAssignment(id); // 🔥 REAL API CALL
-      } catch (err) {
-        console.error(err);
+        await submitAssignment(id, file); // 🔥 REAL API CALL
+      } catch {
+        // Fail silently
 
         // rollback if API fails
         setAssignments((prev) =>
@@ -360,8 +408,8 @@ export default function AcademicJourney() {
 
     try {
       await revertAssignment(undoId);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Fail silently
       // optional: refetch to fix state
     }
 
@@ -470,6 +518,7 @@ export default function AcademicJourney() {
     async function fetchAssignments() {
       try {
         setLoading(true);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         if (tab === "yearly" && dataAll.length === 0) {
           const res = await getMyAssignments("all");
@@ -482,14 +531,15 @@ export default function AcademicJourney() {
         } else {
           setAssignments(tab === "yearly" ? dataAll : data30d);
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
     }
 
     fetchAssignments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   // ─────────────────────────────────────────
@@ -497,7 +547,7 @@ export default function AcademicJourney() {
   // ─────────────────────────────────────────
 
   if (loading) {
-    return <div className="ac-loading">Loading assignments...</div>;
+    return <SkeletonLoader />;
   }
 
   if (error) {
@@ -505,28 +555,43 @@ export default function AcademicJourney() {
   }
 
   return (
-    <div className="ac-page">
-      {/* HEADER */}
-      <header className="ac-header">
-        <div>
-          <p className="ac-eyebrow">{mockData.uiStrings.pageEyebrow}</p>
-          <h1 className="ac-title">{mockData.uiStrings.pageTitle}</h1>
-        </div>
-        <div className="ac-avatar-pill" style={{ background: av.bg }}>
-          {customAvatarUrl ? (
-            <Image
-              src={customAvatarUrl}
-              alt="Profile photo"
-              width={24}
-              height={24}
-              className="ac-avatar-img"
-            />
-          ) : (
-            <span>{av.emoji}</span>
-          )}
-          <span className="ac-avatar-name">{firstName}</span>
-        </div>
-      </header>
+    <main className="flex-1 bg-[#F4F5F7] min-h-screen font-sans relative overflow-x-hidden">
+      <div className="ac-page">
+        {/* HEADER */}
+        <motion.div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6 mt-2 px-4 md:px-0">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              {mockData.uiStrings.pageTitle}
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2"
+            >
+              Track your coursework and assignment progress.
+            </motion.p>
+          </div>
+          <div className="ac-avatar-pill" style={{ background: av.bg }}>
+            {customAvatarUrl ? (
+              <Image
+                src={customAvatarUrl}
+                alt="Profile photo"
+                width={24}
+                height={24}
+                className="ac-avatar-img"
+              />
+            ) : (
+              <span>{av.emoji}</span>
+            )}
+            <span className="ac-avatar-name">{firstName}</span>
+          </div>
+        </motion.div>
 
       {/* TABS */}
       <div className="ac-tabs">
@@ -663,7 +728,7 @@ export default function AcademicJourney() {
                     onToggle={() =>
                       setExpandedId(expandedId === a._id ? null : a._id)
                     }
-                    onSubmit={() => handleSubmit(a._id)}
+                    onSubmit={() => setSubmitModalTask(a)}
                   />
                 ))}
               </div>
@@ -771,11 +836,11 @@ export default function AcademicJourney() {
                               <p className="ac-tl-task-sub">{t.subject}</p>
                             </div>
                             <div className="ac-tl-task-right">
-                              {/* COMPLETE FLOW: show I'm Done button for todo tasks */}
-                              {t.status === "todo" && (
+                              {/* COMPLETE FLOW: show I'm Done button for open tasks */}
+                              {["todo", "not_submitted", "pending"].includes(t.status) && (
                                 <button
                                   className="ac-done-btn"
-                                  onClick={() => handleSubmit(t._id)}
+                                  onClick={() => setSubmitModalTask(t)}
                                   disabled={undoId === t._id}
                                 >
                                   <CheckCircle2 size={13} />
@@ -784,21 +849,26 @@ export default function AcademicJourney() {
                                     : mockData.uiStrings.done}
                                 </button>
                               )}
-                              {t.status !== "todo" && (
+                              {!["todo", "not_submitted", "pending"].includes(t.status) && (
                                 <span
                                   className="ac-status-pill ac-status-pill--sm"
                                   style={{
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     background: (mockData.statusCfg as any)[
                                       t.status
                                     ].bg,
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     color: (mockData.statusCfg as any)[t.status]
                                       .color,
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     borderColor: (mockData.statusCfg as any)[
                                       t.status
                                     ].border,
                                   }}
                                 >
+                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                   {(mockData.statusCfg as any)[t.status].icon}{" "}
+                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                   {(mockData.statusCfg as any)[t.status].label}
                                 </span>
                               )}
@@ -827,7 +897,7 @@ export default function AcademicJourney() {
                   <div className="ac-pending-list">
                     {allPending.map((a) => {
                       const sc = subCfg(a.subject);
-                      const st = (mockData.statusCfg as any)[a.status];
+                      const st = stCfg(a.status);
                       const overdue = a.dueDate < TODAY;
                       return (
                         <div
@@ -851,7 +921,7 @@ export default function AcademicJourney() {
                           {a.status === "todo" ? (
                             <button
                               className="ac-done-btn ac-done-btn--sm"
-                              onClick={() => handleSubmit(a._id)}
+                              onClick={() => setSubmitModalTask(a)}
                               disabled={undoId === a._id}
                             >
                               <CheckCircle2 size={11} />
@@ -979,6 +1049,7 @@ export default function AcademicJourney() {
                       boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
                       fontFamily: "Nunito",
                     }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     formatter={(v: any) => [`${v}% verified`, "Completion"]}
                     labelStyle={{ fontWeight: 800, color: "#1e293b" }}
                     cursor={{
@@ -1084,7 +1155,86 @@ export default function AcademicJourney() {
           </section>
         </div>
       )}
-    </div>
+      </div>
+
+      <Dialog open={!!submitModalTask} onOpenChange={(open) => {
+        if (!open) {
+          setSubmitModalTask(null);
+          setSelectedFile(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px] bg-white rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-xl font-bold text-slate-900">Submit Assignment</DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            <p className="text-sm text-slate-500 mb-6">
+              You are about to submit <strong className="text-slate-800">{submitModalTask?.title}</strong>. You can optionally attach a file (image, video, or PDF) to show your work.
+            </p>
+            
+            <div 
+              className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer
+                ${selectedFile ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+            >
+              <input
+                type="file"
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                accept="image/*,video/*,application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setSelectedFile(file);
+                }}
+              />
+              {selectedFile ? (
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                    <CheckCircle2 className="text-blue-600" size={24} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-800 truncate max-w-[200px]">{selectedFile.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <button 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedFile(null); }}
+                    className="absolute top-3 right-3 p-1.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-slate-200 transition-colors">
+                    <UploadCloud className="text-slate-500" size={24} />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">Click or drag file to upload</p>
+                  <p className="text-xs text-slate-500 mt-1">PDF, Image, or Video (max 10MB)</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="p-6 pt-0 sm:justify-between flex-row-reverse">
+            <Button 
+              onClick={() => {
+                if (submitModalTask) {
+                  handleSubmit(submitModalTask._id, selectedFile);
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-6"
+            >
+              Submit Assignment
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setSubmitModalTask(null);
+                setSelectedFile(null);
+              }}
+              className="rounded-xl font-semibold text-slate-600 hover:text-slate-800"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
   );
 }
 
@@ -1101,7 +1251,7 @@ interface TaskCardProps {
 
 function TaskCard({ a, expanded, isUndo, onToggle, onSubmit }: TaskCardProps) {
   const sc = subCfg(a.subject);
-  const st = (mockData.statusCfg as any)[a.status];
+  const st = stCfg(a.status);
   return (
     <div
       className={`ac-task${expanded ? " ac-task--open" : ""}${isUndo ? " ac-task--pulse" : ""}`}
@@ -1116,8 +1266,8 @@ function TaskCard({ a, expanded, isUndo, onToggle, onSubmit }: TaskCardProps) {
         <p className="ac-task-subject">{a.subject}</p>
       </div>
       <div className="ac-task-right">
-        {/* COMPLETE FLOW: todo → button, others → status pill */}
-        {a.status === "todo" ? (
+        {/* COMPLETE FLOW: todo/not_submitted/pending → button, others → status pill */}
+        {["todo", "not_submitted", "pending"].includes(a.status) ? (
           <button className="ac-done-btn" onClick={onSubmit} disabled={isUndo}>
             <CheckCircle2 size={13} />
             {isUndo
@@ -1158,6 +1308,14 @@ function TaskCard({ a, expanded, isUndo, onToggle, onSubmit }: TaskCardProps) {
             <div className="ac-detail ac-detail--warn">
               <AlertCircle size={12} />
               <span>{a.rejectionNote}</span>
+            </div>
+          )}
+          {a.fileUrl && (
+            <div className="ac-detail">
+              <Paperclip size={12} className="text-slate-400" />
+              <a href={a.fileUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline hover:text-blue-600 font-medium">
+                View Attachment ({a.fileType === 'pdf' ? 'PDF' : a.fileType === 'video' ? 'Video' : 'Image'})
+              </a>
             </div>
           )}
         </div>

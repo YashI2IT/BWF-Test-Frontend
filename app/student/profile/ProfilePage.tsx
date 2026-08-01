@@ -1,6 +1,7 @@
 "use client";
 // app/student/profile/ProfilePage.tsx
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import "../styles/profile.css";
 import {
   Edit2,
@@ -83,6 +84,7 @@ export default function ProfilePage() {
   const [activeCategory, setActiveCat] = useState<string>("Animals");
   const [tagInput, setTagInput] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // const [profile, setProfile] = useState<Profile>(mockData.initialProfile);
   const [profile, setProfile] = useState<Profile>({
@@ -105,8 +107,12 @@ export default function ProfilePage() {
   // };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     try {
+      setIsSubmitting(true);
       const updated = await updateProfile({
+        name: profile.name,
+        dob: profile.dob,
         bio: profile.bio,
         classInfo: profile.classInfo,
         interests: profile.interests,
@@ -130,7 +136,9 @@ export default function ProfilePage() {
 
       setTimeout(() => setSaved(false), 2800);
     } catch (err) {
-      console.error("Update error:", err);
+      // Fail silently
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -174,7 +182,7 @@ export default function ProfilePage() {
         if (data.avatarId) setAvatarId(data.avatarId);
         if (data.customAvatarUrl) setCustomAvatarUrl(data.customAvatarUrl);
       } catch (err) {
-        console.error("Profile fetch error:", err);
+        // Fail silently
       }
     };
 
@@ -188,7 +196,7 @@ export default function ProfilePage() {
         console.log("journal data:", data);
         setEntries(data.entries || []);
       } catch (err) {
-        console.error("Journal fetch error:", err);
+        // Fail silently
       }
     };
 
@@ -196,12 +204,28 @@ export default function ProfilePage() {
   }, []);
 
   return (
-    <div className="prof-page">
+    <main className="flex-1 bg-[#F4F5F7] min-h-screen font-sans relative overflow-x-hidden">
+      <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto w-full min-w-0">
+        <div className="prof-page" style={{ padding: 0, minHeight: "auto", background: "transparent" }}>
       {/* HEADER */}
       <header className="prof-header">
         <div>
-          <p className="prof-eyebrow">{mockData.uiStrings.pageEyebrow}</p>
-          <h1 className="prof-title">{mockData.uiStrings.pageTitle}</h1>
+          <motion.p
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.05 }}
+            className="text-[11px] font-extrabold tracking-[2.5px] uppercase text-blue-600 mb-1"
+          >
+            {mockData.uiStrings.pageEyebrow}
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+          >
+            {mockData.uiStrings.pageTitle}
+          </motion.h1>
         </div>
         <div className="prof-header-right">
           {saved && (
@@ -212,6 +236,7 @@ export default function ProfilePage() {
           <button
             className={`prof-edit-btn${editing ? " prof-edit-btn--save" : ""}`}
             onClick={() => (editing ? handleSave() : setEditing(true))}
+            disabled={isSubmitting}
           >
             {editing ? (
               <>
@@ -229,7 +254,7 @@ export default function ProfilePage() {
       </header>
 
       {/* HERO */}
-      <section className="prof-hero">
+      <section className="prof-hero rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
         <div className="prof-blob b1" />
         <div className="prof-blob b2" />
         <div className="prof-blob b3" />
@@ -328,7 +353,7 @@ export default function ProfilePage() {
 
       {/* AVATAR PICKER */}
       {pickerOpen && editing && (
-        <section className="prof-picker">
+        <section className="prof-picker rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
           <div className="prof-picker-top">
             <div>
               <h3 className="prof-picker-title">
@@ -416,7 +441,7 @@ export default function ProfilePage() {
             value: `${profile.interests.length}${mockData.uiStrings.statInterestsSub}`,
           },
         ].map((s, i) => (
-          <div key={i} className="prof-stat">
+          <div key={i} className="prof-stat rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
             <span className="prof-stat-emoji">{s.emoji}</span>
             <div>
               <p className="prof-stat-label">{s.label}</p>
@@ -434,6 +459,8 @@ export default function ProfilePage() {
           entries={entries}
         />
       </div>
+      </div>
     </div>
+  </main>
   );
 }

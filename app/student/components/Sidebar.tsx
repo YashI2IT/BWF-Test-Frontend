@@ -1,201 +1,180 @@
 "use client";
-// app/student/components/Sidebar.tsx
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { 
-  Home, 
-  BookOpen, 
-  Bell, 
-  Settings, 
-  HeartPulse, 
-  Megaphone, 
-  Menu, 
-  X, 
-  Users,   
-  MessageSquareWarning,
-  LogOut,
-} from "lucide-react";
-import { useNotices } from "../context/NoticeContext";
-import { useProfile } from "../context/ProfileContext";
-import { getAvatar } from "../constants/avatars";
-import Image from 'next/image';
 
-const NAV_LINKS = [
-  { href: "/student/community",   label: "Community",                Icon: Users      },
-  { href: "/student/dashboard",   label: "Home",                     Icon: Home       },
-  { href: "/student/mycourses",   label: "Assignments",              Icon: BookOpen   },
-  { href: "/student/noticeboard", label: "Notice Board",             Icon: Megaphone  },
-  { href: "/student/wellbeing",   label: "Wellbeing/Help",           Icon: HeartPulse },
-  { href: "/student/complaints",  label: "Activities & Complaints",  Icon: MessageSquareWarning   },
-  { href: "/student/profile",     label: "Profile",                  Icon: Settings   }
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  MessageSquare,
+  LayoutDashboard,
+  Users,
+  CalendarCheck,
+  Calendar,
+  AlertCircle,
+  FileCheck2,
+  FileText,
+  ListTodo,
+  Bell,
+  Menu,
+  X,
+  LayoutGrid,
+  GraduationCap,
+  HeartPulse,
+  MessageSquareWarning,
+  Settings,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/app/teacher/Template/components/ui/sidebar";
+import { useSidebar } from "@/app/teacher/Template/components/ui/sidebar";
+import { Button } from "@/app/teacher/Template/components/ui/button";
+
+const menuGroups = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/student/community", label: "Community", icon: Users },
+      { href: "/student/noticeboard", label: "Notice Board", icon: Bell },
+    ]
+  },
+  {
+    label: "Academics",
+    items: [
+      { href: "/student/mycourses", label: "Assignments", icon: FileCheck2 },
+    ]
+  },
+  {
+    label: "Support",
+    items: [
+      { href: "/student/wellbeing", label: "Wellbeing/Help", icon: HeartPulse },
+      { href: "/student/complaints", label: "Activities & Complaints", icon: MessageSquareWarning }
+    ]
+  }
 ];
 
-export default function StudentSidebar() {
+export function StudentSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isMobileOpen, setIsMobileOpen] = useState(false); // Mobile state
-  
-  const { unreadCount } = useNotices();
-  const { avatarId, customAvatarUrl } = useProfile();
-  const av = getAvatar(avatarId);
-  const hasUnread = unreadCount > 0;
+  const { setOpenMobile } = useSidebar();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    'Overview': true,
+    'Academics': true,
+    'Management': true,
+    'Support': true
+  });
 
-  // Add/remove sidebar-open class from html element
-  useEffect(() => {
-    const htmlElement = document.documentElement;
-    if (isMobileOpen) {
-      htmlElement.classList.add("sidebar-open");
-    } else {
-      htmlElement.classList.remove("sidebar-open");
-    }
-    return () => {
-      htmlElement.classList.remove("sidebar-open");
-    };
-  }, [isMobileOpen]);
-
-  const closeMobile = () => {
-    setIsMobileOpen(false);
-  };
-
-  const openMobile = () => {
-    setIsMobileOpen(true);
-  };
-
-  const handleNavClick = () => {
-    // Small delay to ensure smooth transition
-    setTimeout(() => closeMobile(), 100);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("role");
-    router.push("/auth/login");
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
   return (
     <>
-      {/* ── MOBILE HEADER (Only visible via CSS media query) ── */}
-      <div className="mobile-top-bar">
-        <button 
-          className="mobile-menu-btn" 
-          onClick={openMobile}
-          aria-label="Open menu"
-          type="button"
-        >
-          <Menu size={24} />
-        </button>
-        <div className="mobile-logo-text">BWF</div>
-        <button 
-          className="mobile-avatar-btn" 
-          onClick={() => { router.push("/student/profile"); closeMobile(); }}
-          aria-label="Go to profile"
-          type="button"
-        >
-          {customAvatarUrl ? (
-            <Image src={customAvatarUrl} alt="Profile photo" width={26} height={26} className="mobile-avatar-img" />
-          ) : (
-            <span>{av.emoji}</span>
-          )}
-        </button>
-      </div>
-
-      {/* ── SIDEBAR ── */}
-      <aside className={`sidebar ${isMobileOpen ? "mobile-active" : ""}`}>
-        {/* Close button for mobile drawer */}
-        <button 
-          className="mobile-close-btn" 
-          onClick={closeMobile}
-          aria-label="Close menu"
-          type="button"
-        >
-          <X size={20} />
-        </button>
-
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            <Image 
-              src="/logo.png" 
-              alt="BWF Logo" 
-              width={42} 
-              height={42}
-              priority
-            />
+      <Sidebar className="border-r border-slate-200 bg-[#F3F4F6]">
+        <SidebarHeader className="pt-8 pb-6 px-6 border-none">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100">
+              <LayoutDashboard className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[18px] text-slate-900 tracking-tight">Student Dashboard</p>
+            </div>
           </div>
-          <h2 className="sidebar-title">BWF</h2>
-        </div> 
+        </SidebarHeader>
 
-        <nav className="sidebar-nav">
-          {NAV_LINKS.map(({ href, label, Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
-            const isNotice = href.includes("noticeboard");
-            return (
-              <Link 
-                key={href} 
-                href={href} 
-                className={`nav-item${isActive ? " active" : ""}`}
-                onClick={handleNavClick} // Closes sidebar on link click (mobile)
-              >
-                <span className="nav-icon-wrap">
-                  <Icon size={19} />
-                  {isNotice && hasUnread && (
-                    <span className="nav-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
-                  )}
-                </span>
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        <SidebarContent className="px-4 py-2">
+          {menuGroups.map((group, groupIndex) => (
+            <SidebarGroup key={groupIndex} className="pt-0 pb-6">
+              {group.label && (
+                <SidebarGroupLabel 
+                  className="flex items-center justify-between text-slate-800 font-semibold text-[15px] px-2 mb-3 h-auto py-0 cursor-pointer hover:text-blue-600 transition-colors select-none"
+                  onClick={() => toggleGroup(group.label)}
+                >
+                  <div className="flex items-center gap-3">
+                    {group.label === 'Overview' && <LayoutGrid className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label === 'Academics' && <GraduationCap className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label === 'Management' && <ListTodo className="w-[18px] h-[18px] text-slate-700 stroke-[2px]" />}
+                    {group.label}
+                  </div>
+                  <div className={`w-4 h-4 flex items-center justify-center text-slate-400 transition-transform duration-200 ${!expandedGroups[group.label] ? '-rotate-90' : ''}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </SidebarGroupLabel>
+              )}
+              {expandedGroups[group.label] && (
+                <SidebarGroupContent className="pl-6 relative">
+                  <SidebarMenu className="relative z-10 gap-0">
+                    {group.items.map((item, index) => {
+                      const isActive = pathname === item.href;
+                      const isFirst = index === 0;
+                      const isLast = index === group.items.length - 1;
+                      
+                      return (
+                        <SidebarMenuItem
+                          key={item.href}
+                          className="relative mb-1"
+                        >
+                          {/* Perfect SVG Tree Line */}
+                          <svg 
+                            className="absolute pointer-events-none" 
+                            style={{ left: '-24px', top: 0, width: '24px', height: '100%', overflow: 'visible' }}
+                          >
+                            {/* Top part of vertical line */}
+                            <line 
+                              x1="17" 
+                              y1={isFirst ? "-16" : "-4"} 
+                              x2="17" 
+                              y2={isLast ? "8" : "48"} 
+                              stroke="#cbd5e1" 
+                              strokeWidth="2" 
+                            />
+                            {/* The curved branch */}
+                            <path 
+                              d="M 17 8 Q 17 20 24 20" 
+                              fill="none" 
+                              stroke="#cbd5e1" 
+                              strokeWidth="2" 
+                            />
+                          </svg>
 
-        <div className="sidebar-bottom">
-          <button
-            className={`sb-bell${hasUnread ? " sb-bell--on" : ""}`}
-            onClick={() => { router.push("/student/noticeboard"); handleNavClick(); }}
-            title={hasUnread ? `${unreadCount} unread notices` : "All caught up!"}
-            type="button"
-          >
-            <Bell size={17} />
-            {hasUnread && (
-              <span className="sb-bell-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
-            )}
-          </button>
-
-          <button
-            className="sb-avatar"
-            style={{ background: av.bg }}
-            onClick={() => { router.push("/student/profile"); handleNavClick(); }}
-            title="My Profile"
-            type="button"
-          >
-            {customAvatarUrl ? (
-              <Image src={customAvatarUrl} alt="Profile photo" width={40} height={40} className="sb-avatar-img" />
-            ) : (
-              <span>{av.emoji}</span>
-            )}
-          </button>
-
-          <button
-            className="sb-bell"
-            style={{ color: "#ef4444" }}
-            onClick={handleLogout}
-            title="Log Out"
-            type="button"
-          >
-            <LogOut size={17} />
-          </button>
-        </div>
-
-        <div className="sb-foot-blob" />
-      </aside>
-
-      {/* ── OVERLAY (Always in DOM, hidden via CSS) ── */}
-      <div 
-        className={`sidebar-overlay ${isMobileOpen ? "active" : ""}`} 
-        onClick={closeMobile}
-        aria-hidden="true"
-        role="presentation"
-      />
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            className={`transition-all duration-200 h-10 px-4 rounded-xl flex items-center justify-between ${
+                              isActive
+                                ? "bg-white text-slate-900 font-semibold shadow-sm shadow-slate-200/50"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 font-medium"
+                            }`}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            <Link href={item.href} className="w-full flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <item.icon className={`w-[18px] h-[18px] stroke-[2px] ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                                <span className={`text-[14.5px] ${isActive ? 'text-blue-700 font-bold' : ''}`}>{item.label}</span>
+                              </div>
+                              {(item as any).badge && (
+                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${(item as any).badge.color}`}>
+                                  {(item as any).badge.count}
+                                </span>
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+      </Sidebar>
     </>
   );
 }

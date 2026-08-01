@@ -1,7 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Search, Plus, ChevronDown, CalendarIcon, Upload } from 'lucide-react';
+import { motion, type Variants } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/warden/Template/components/ui/card';
 import { Button } from '@/app/warden/Template/components/ui/button';
 import { Badge } from '@/app/warden/Template/components/ui/badge';
@@ -10,6 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
 import { Input } from '@/app/warden/Template/components/ui/input';
 import { Textarea } from '@/app/warden/Template/components/ui/textarea';
+import { Skeleton } from '@/app/warden/Template/components/ui/skeleton';
+import api from '@/app/lib/api';
+import { Calendar } from '@/app/warden/Template/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/warden/Template/components/ui/popover';
+import { format } from 'date-fns';
 import {
   BarChart,
   Bar,
@@ -24,30 +32,39 @@ import {
   Legend,
 } from 'recharts';
 
-const ITEMS_PER_PAGE = 8;
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }
+};
+
+
 
 type Category =
   | 'Food'
-  | 'Utilities'
-  | 'Medical'
   | 'Education'
-  | 'Staff'
+  | 'Medical'
+  | 'Cosmetics'
+  | 'Utilities'
   | 'Maintenance'
-  | 'Supplies'
-  | 'Activities'
-  | 'Transport'
-  | 'Administration'
-  | 'Emergency';
+  | 'Events'
+  | 'Other';
 
-type Status = 'paid' | 'pending';
+type Status = 'pending' | 'approved' | 'rejected' | 'paid';
+type Home = 'Jammu' | 'Anantnag' | 'Kupwara' | 'Beerwah' | 'All';
 
 interface Expense {
-  id: number;
-  student: string;
+  _id: string;
+  title: string;
   category: Category;
   amount: number;
-  description: string;
+  notes: string;
   date: string;
+  home: Home;
   status: Status;
 }
 
@@ -56,123 +73,98 @@ const categoryColors: Record<Category, string> = {
   Utilities: '#8b5cf6',
   Medical: '#10b981',
   Education: '#06b6d4',
-  Staff: '#db2777',
   Maintenance: '#f97316',
-  Supplies: '#0ea5e9',
-  Activities: '#e11d48',
-  Transport: '#f59e0b',
-  Administration: '#64748b',
-  Emergency: '#ef4444',
+  Cosmetics: '#db2777',
+  Events: '#e11d48',
+  Other: '#64748b',
 };
 
-const truncateWords = (value: string, wordCount = 4) => {
-  const words = value.split(/\s+/).filter(Boolean);
-  return words.length <= wordCount ? value : `${words.slice(0, wordCount).join(' ')}...`;
-};
 
 export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | Category>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | Status>('ALL');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [, setCurrentPage] = useState(1);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [draftExpense, setDraftExpense] = useState<Expense | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isGuideExpanded, setIsGuideExpanded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [data, setData] = useState<Expense[]>([
-    {
-      id: 1,
-      student: 'Arjun Kumar',
-      category: 'Food',
-      amount: 500,
-      description: 'Monthly meal charges for the hostel mess and cafeteria facilities.',
-      date: '2026-04-12',
-      status: 'paid',
-    },
-    {
-      id: 2,
-      student: 'Meera Patel',
-      category: 'Education',
-      amount: 1200,
-      description: 'Books and stationery purchase for science and maths classes.',
-      date: '2026-04-10',
-      status: 'paid',
-    },
-    {
-      id: 3,
-      student: 'Rohan Verma',
-      category: 'Medical',
-      amount: 3200,
-      description: 'First aid kit refill and consultation charges for the hostel clinic.',
-      date: '2026-04-08',
-      status: 'pending',
-    },
-    {
-      id: 4,
-      student: 'Priya Singh',
-      category: 'Maintenance',
-      amount: 750,
-      description: 'Sports equipment repair and replacement for the activity center.',
-      date: '2026-04-06',
-      status: 'pending',
-    },
-    {
-      id: 5,
-      student: 'Ananya Gupta',
-      category: 'Activities',
-      amount: 420,
-      description: 'Snacks and refreshment items for the weekend study hall.',
-      date: '2026-04-04',
-      status: 'paid',
-    },
-    {
-      id: 6,
-      student: 'Vikram Singh',
-      category: 'Supplies',
-      amount: 890,
-      description: 'Online course subscription and digital library access for students.',
-      date: '2026-04-02',
-      status: 'pending',
-    },
-    {
-      id: 7,
-      student: 'Sara Khan',
-      category: 'Medical',
-      amount: 650,
-      description: 'Doctor consultation and medicines for hostel health checkups.',
-      date: '2026-03-29',
-      status: 'paid',
-    },
-    {
-      id: 8,
-      student: 'Harsh Jain',
-      category: 'Utilities',
-      amount: 980,
-      description: 'Housekeeping supplies purchase for dorm common areas and lounges.',
-      date: '2026-03-26',
-      status: 'pending',
-    },
-    {
-      id: 9,
-      student: 'Neha Reddy',
-      category: 'Transport',
-      amount: 640,
-      description: 'Breakfast buffet charges and special diet meal requests.',
-      date: '2026-03-22',
-      status: 'paid',
-    },
-  ]);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split('\n').filter(line => line.trim());
+      // Skip header, parse rest
+      const newExpenses = lines.slice(1).map((line) => {
+        const [title, category, amount, notes, date, status, home] = line.split(',');
+        // Basic validation for CSV fields
+        const validCategories = ['Food', 'Education', 'Medical', 'Cosmetics', 'Utilities', 'Maintenance', 'Events', 'Other'];
+        const validStatuses = ['pending', 'approved', 'rejected', 'paid'];
+        const validHomes = ['Jammu', 'Anantnag', 'Kupwara', 'Beerwah', 'All'];
+        
+        return {
+          title: title?.trim() || 'Unknown',
+          category: (validCategories.includes(category?.trim()) ? category.trim() : 'Food') as Category,
+          amount: parseFloat(amount?.trim()) || 0,
+          notes: notes?.trim() || 'Imported from CSV',
+          date: date?.trim() || new Date().toISOString().slice(0, 10),
+          status: (validStatuses.includes(status?.trim().toLowerCase()) ? status.trim().toLowerCase() : 'pending') as Status,
+          home: (validHomes.includes(home?.trim()) ? home.trim() : 'All') as Home,
+        };
+      });
+
+      try {
+        const promises = newExpenses.map(exp => api.post('/warden/expenses', exp));
+        const results = await Promise.all(promises);
+        const savedExpenses = results.map(res => res.data);
+        setData((prev) => [...savedExpenses, ...prev]);
+      } catch (error) {
+        console.error("Failed to upload all expenses via CSV:", error);
+        alert("Some or all CSV imports failed");
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const [data, setData] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchExpenses = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get('/warden/expenses');
+      setData(res.data);
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, categoryFilter, statusFilter]);
 
+
   const filteredData = useMemo(() => {
     return data.filter((expense) => {
       const matchesSearch =
-        expense.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.description.toLowerCase().includes(searchTerm.toLowerCase());
+        (expense.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (expense.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'ALL' || expense.category === categoryFilter;
       const matchesStatus = statusFilter === 'ALL' || expense.status === statusFilter;
       return matchesSearch && matchesCategory && matchesStatus;
@@ -191,13 +183,10 @@ export default function ExpensesPage() {
     Utilities: 0,
     Medical: 0,
     Education: 0,
-    Staff: 0,
+    Cosmetics: 0,
     Maintenance: 0,
-    Supplies: 0,
-    Activities: 0,
-    Transport: 0,
-    Administration: 0,
-    Emergency: 0,
+    Events: 0,
+    Other: 0,
   });
 
   const totalExpenses = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0);
@@ -217,11 +206,13 @@ export default function ExpensesPage() {
   }, [data]);
 
   const expenseBreakdown = useMemo(() => {
-    return (Object.keys(categoryTotals) as Category[]).map((category) => ({
-      name: category,
-      value: categoryTotals[category],
-      fill: categoryColors[category],
-    }));
+    return (Object.keys(categoryTotals) as Category[])
+      .filter((category) => categoryTotals[category] > 0)
+      .map((category) => ({
+        name: category,
+        value: categoryTotals[category],
+        fill: categoryColors[category],
+      }));
   }, [categoryTotals]);
 
   const highestCategory = (Object.keys(categoryTotals) as Category[]).reduce((best, key) =>
@@ -229,20 +220,18 @@ export default function ExpensesPage() {
     'Food'
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
-  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = filteredData.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
 
   const handleAddExpense = () => {
-    const nextId = Math.max(0, ...data.map((item) => item.id)) + 1;
     setSelectedExpense(null);
     setDraftExpense({
-      id: nextId,
-      student: '',
+      _id: '',
+      title: '',
       category: 'Food',
       amount: 0,
-      description: '',
+      notes: '',
       date: new Date().toISOString().slice(0, 10),
+      home: 'All',
       status: 'pending',
     });
     setIsDetailOpen(true);
@@ -254,33 +243,51 @@ export default function ExpensesPage() {
     setIsDetailOpen(true);
   };
 
-  const handleDelete = () => {
-    if (!draftExpense) return;
-    setData((prev) => prev.filter((item) => item.id !== draftExpense.id));
-    setSelectedExpense(null);
-    setDraftExpense(null);
-    setIsDetailOpen(false);
+  const handleDelete = async () => {
+    if (!draftExpense || !draftExpense._id) return;
+    try {
+      await api.delete(`/warden/expenses/${draftExpense._id}`);
+      setData((prev) => prev.filter((item) => item._id !== draftExpense._id));
+      setSelectedExpense(null);
+      setDraftExpense(null);
+      setIsDetailOpen(false);
+    } catch (error) {
+      console.error("Failed to delete expense:", error);
+      alert("Failed to delete expense");
+    }
   };
 
-  const handleMarkPaid = () => {
-    if (!draftExpense) return;
-    const updated = { ...draftExpense, status: 'paid' as Status };
-    setDraftExpense(updated);
-    setSelectedExpense(updated);
-    setData((prev) => prev.map((item) => item.id === updated.id ? updated : item));
-  };
 
-  const handleSaveExpense = () => {
+
+  const handleSaveExpense = async () => {
     if (!draftExpense) return;
-    setData((prev) => {
-      const exists = prev.some((item) => item.id === draftExpense.id);
-      if (exists) {
-        return prev.map((item) => (item.id === draftExpense.id ? draftExpense : item));
+    try {
+      const payload = {
+        title: draftExpense.title,
+        category: draftExpense.category,
+        amount: draftExpense.amount,
+        notes: draftExpense.notes,
+        date: draftExpense.date,
+        home: draftExpense.home,
+        status: draftExpense.status
+      };
+
+      if (draftExpense._id) {
+        // Update
+        const res = await api.put(`/warden/expenses/${draftExpense._id}`, payload);
+        setData((prev) => prev.map((item) => (item._id === res.data._id ? res.data : item)));
+        setSelectedExpense(res.data);
+      } else {
+        // Create
+        const res = await api.post('/warden/expenses', payload);
+        setData((prev) => [res.data, ...prev]);
+        setSelectedExpense(res.data);
       }
-      return [draftExpense, ...prev];
-    });
-    setSelectedExpense(draftExpense);
-    setIsDetailOpen(false);
+      setIsDetailOpen(false);
+    } catch (error) {
+      console.error("Failed to save expense:", error);
+      alert("Failed to save expense");
+    }
   };
 
   const getStatusStyle = (status: Status) => {
@@ -289,298 +296,305 @@ export default function ExpensesPage() {
     return 'bg-rose-50 text-rose-700 border border-rose-100';
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-64 rounded-xl" />
+            <Skeleton className="h-4 w-40 rounded-lg opacity-70" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-3xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Skeleton className="h-[350px] rounded-3xl" />
+          <Skeleton className="h-[350px] rounded-3xl" />
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-4xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-[#f8fafc] min-h-screen text-[13px]">
-      <div className="flex items-center justify-between mb-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Expenses Tracking</h1>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1 font-medium">
-            <span>Home</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-indigo-500 font-semibold">Expenses</span>
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              Expenses Management
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2 font-medium"
+            >
+              Track and manage hostel expenses and budgets.
+            </motion.p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <input 
+              type="file" 
+              accept=".csv" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+            />
+            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-full h-10 px-6 text-xs font-bold shadow-sm transition-all active:scale-95 text-slate-700 bg-white hover:bg-slate-50 border-slate-200">
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button onClick={handleAddExpense} className="bg-slate-900 hover:bg-slate-800 text-white rounded-full h-10 px-8 text-xs font-bold shadow-md transition-all active:scale-95">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Expense
+            </Button>
           </div>
         </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 rounded-xl h-10 px-8 text-xs font-bold shadow-md transition-all active:scale-95" onClick={handleAddExpense}>
-          <Plus className="w-4 h-4" />
-          Add Expense
-        </Button>
-      </div>
 
-      <div className="space-y-4">
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="border border-slate-200/70 rounded-3xl p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-semibold">Total Expenses (This Month)</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">₹{totalAmount.toLocaleString()}</p>
-          <p className="mt-1 text-sm text-slate-500">{data.length} transactions</p>
-        </Card>
-        <Card className="border border-slate-200/70 rounded-3xl p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-semibold">Highest Category</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{highestCategory}</p>
-          <p className="mt-1 text-sm text-slate-500">₹{categoryTotals[highestCategory].toLocaleString()}</p>
-        </Card>
-        <Card className="border border-slate-200/70 rounded-3xl p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-semibold">Pending Payments</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{pendingCount}</p>
-          <p className="mt-1 text-sm text-slate-500">₹{pendingAmount.toLocaleString()}</p>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card className="border border-slate-200/70 rounded-3xl shadow-sm overflow-hidden">
-          <CardHeader className="p-4">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-base">Expense Breakdown</CardTitle>
-              <CardDescription className="text-xs">Pie chart for all categories.</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseBreakdown}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={(entry: any) => `${entry.name}: ${Math.round((entry.percent ?? 0) * 100)}%`}
-                  >
-                    {expenseBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-slate-200/70 rounded-3xl shadow-sm overflow-hidden">
-          <CardHeader className="p-4">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-base">Monthly Trends</CardTitle>
-              <CardDescription className="text-xs">Last 6 months overall expense</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={expenseTrendData} margin={{ top: 10, right: 8, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.3)" />
-                  <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="amount" fill="#4f46e5" radius={[8, 8, 0, 0]} name="Expense" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border border-slate-200/70 rounded-3xl overflow-hidden">
-        <CardHeader className="">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-base">Expense Records</CardTitle>
-              <CardDescription className="text-xs">Recent expense entries for your hostel</CardDescription>
-            </div>
-            <p className="text-xs text-slate-500">Showing {filteredData.length} records</p>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 pb-3 px-3">
-          <div className="flex flex-col gap-1 mb-3 -mt-1">
-            <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative w-full lg:max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search student or description"
-                  className="pl-9 h-8 rounded-2xl border-slate-200 bg-slate-50 text-xs w-full"
-                />
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2 w-full lg:w-auto">
-                <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as 'ALL' | Category)}>
-                  <SelectTrigger className="h-8 rounded-2xl bg-slate-50 border-slate-200 px-3 text-xs text-slate-600"><SelectValue placeholder="All Categories" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                    <SelectItem value="ALL">All Categories</SelectItem>
-                    <SelectItem value="Food">Food</SelectItem>
-                    <SelectItem value="Utilities">Utilities</SelectItem>
-                    <SelectItem value="Medical">Medical</SelectItem>
-                    <SelectItem value="Education">Education</SelectItem>
-                    <SelectItem value="Staff">Staff</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                    <SelectItem value="Supplies">Supplies</SelectItem>
-                    <SelectItem value="Activities">Activities</SelectItem>
-                    <SelectItem value="Transport">Transport</SelectItem>
-                    <SelectItem value="Administration">Administration</SelectItem>
-                    <SelectItem value="Emergency">Emergency</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'ALL' | Status)}>
-                  <SelectTrigger className="h-8 rounded-2xl bg-slate-50 border-slate-200 px-3 text-xs text-slate-600"><SelectValue placeholder="All Status" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                    <SelectItem value="ALL">All Status</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
+        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card className="border border-slate-200/70 rounded-3xl p-5 shadow-sm bg-white hover:shadow-md transition-shadow">
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Total Expenses (This Month)</p>
+              <div>
+                <p className="text-3xl font-extrabold text-slate-900 tracking-tight">₹{totalAmount.toLocaleString()}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">{data.length} transactions</p>
               </div>
             </div>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50/70">
-                <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Date</TableHead>
-                  <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Category</TableHead>
-                  <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Description</TableHead>
-                  <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Amount</TableHead>
-                  <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedData.length > 0 ? (
-                  paginatedData.map((expense) => (
-                    <TableRow
-                      key={expense.id}
-                      onClick={() => handleRowClick(expense)}
-                      className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <TableCell className="py-3 px-4 text-sm font-semibold text-slate-900">{expense.date}</TableCell>
-                      <TableCell className="py-3 px-4">
-                        <Badge className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${categoryColors[expense.category]}20`, color: categoryColors[expense.category] }}>
-                          {expense.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-slate-600 max-w-64 truncate">{truncateWords(expense.description)}</TableCell>
-                      <TableCell className="py-3 px-4 text-sm font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</TableCell>
-                      <TableCell className="py-3 px-4">
-                        <Badge className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${getStatusStyle(expense.status)}`}>
-                          {expense.status}
-                        </Badge>
-                      </TableCell>
+          </Card>
+          <Card className="border border-slate-200/70 rounded-3xl p-5 shadow-sm bg-white hover:shadow-md transition-shadow">
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Highest Category</p>
+              <div>
+                <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{highestCategory}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">₹{categoryTotals[highestCategory].toLocaleString()}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="border border-slate-200/70 rounded-3xl p-5 shadow-sm bg-white hover:shadow-md transition-shadow">
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Pending Payments</p>
+              <div>
+                <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{pendingCount}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">₹{pendingAmount.toLocaleString()}</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <motion.div variants={itemVariants}>
+            <Card className="border border-slate-200/70 rounded-3xl shadow-sm overflow-hidden">
+              <CardHeader className="p-4">
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-base">Expense Breakdown</CardTitle>
+                  <CardDescription className="text-xs">Pie chart for all categories.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="h-60">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={expenseBreakdown}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label={(entry: any) => `${entry.name}: ${Math.round((entry.percent ?? 0) * 100)}%`}
+                      >
+                        {expenseBreakdown.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="border border-slate-200/70 rounded-3xl shadow-sm overflow-hidden">
+              <CardHeader className="p-4">
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-base">Monthly Trends</CardTitle>
+                  <CardDescription className="text-xs">Last 6 months overall expense</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="h-60">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={expenseTrendData} margin={{ top: 10, right: 8, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.3)" />
+                      <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+                      <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="amount" fill="#0f172a" radius={[8, 8, 0, 0]} name="Expense" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <motion.div variants={itemVariants} className="mb-6">
+          <Card className="border border-slate-200/70 rounded-3xl overflow-hidden">
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base">Expense Records</CardTitle>
+                  <CardDescription className="text-xs">Recent expense entries for your hostel</CardDescription>
+                </div>
+                <p className="text-xs text-slate-500">Showing {filteredData.length} records</p>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 pb-3 px-3">
+              <div className="flex flex-col gap-1 mb-3 -mt-1">
+                <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="relative w-full lg:max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search student or description..."
+                      className="pl-9 h-10 rounded-full border-slate-200 bg-slate-50 text-sm w-full focus-visible:ring-1 focus-visible:ring-slate-300"
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2 w-full lg:w-auto">
+                    <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as 'ALL' | Category)}>
+                      <SelectTrigger className="h-10 rounded-full bg-slate-50 border-slate-200 px-4 text-sm text-slate-600 focus:ring-1 focus:ring-slate-300"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                      <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5">
+                        <SelectItem value="ALL" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">All Categories</SelectItem>
+                        <SelectItem value="Food" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Food</SelectItem>
+                        <SelectItem value="Utilities" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Utilities</SelectItem>
+                        <SelectItem value="Medical" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Medical</SelectItem>
+                        <SelectItem value="Education" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Education</SelectItem>
+                        <SelectItem value="Maintenance" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Maintenance</SelectItem>
+                        <SelectItem value="Cosmetics" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Cosmetics</SelectItem>
+                        <SelectItem value="Events" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Events</SelectItem>
+                        <SelectItem value="Other" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'ALL' | Status)}>
+                      <SelectTrigger className="h-10 rounded-full bg-slate-50 border-slate-200 px-4 text-sm text-slate-600 focus:ring-1 focus:ring-slate-300"><SelectValue placeholder="All Status" /></SelectTrigger>
+                      <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5">
+                        <SelectItem value="ALL" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">All Status</SelectItem>
+                        <SelectItem value="paid" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Paid</SelectItem>
+                        <SelectItem value="pending" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-sm py-2">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50/70">
+                    <TableRow className="border-none hover:bg-transparent">
+                      <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Date</TableHead>
+                      <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Category</TableHead>
+                      <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Description</TableHead>
+                      <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Amount</TableHead>
+                      <TableHead className="py-3 px-4 text-[10px] uppercase tracking-[0.22em] text-slate-500 border-none">Status</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-xs text-slate-500 font-medium italic">
-                      No expenses found matching your filters.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-t border-slate-100">
-            <p className="text-xs text-slate-500">
-              Showing {filteredData.length > 0 ? startIdx + 1 : 0} to {Math.min(startIdx + ITEMS_PER_PAGE, filteredData.length)} of {filteredData.length} expenses
-            </p>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </Button>
-              <div className="flex items-center gap-1">
-                {[...Array(totalPages)].map((_, index) => (
-                  <Button
-                    key={index}
-                    variant={currentPage === index + 1 ? 'default' : 'ghost'}
-                    className={`w-6 h-6 rounded-lg text-[10px] font-bold p-0 transition-all ${
-                      currentPage === index + 1 ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'
-                    }`}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-48 text-center text-slate-500">No expenses found.</TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredData.map((expense) => (
+                        <TableRow 
+                          key={expense._id}
+                          className="border-b border-slate-50/50 hover:bg-slate-50/50 cursor-pointer transition-colors"
+                          onClick={() => handleRowClick(expense)}
+                        >
+                          <TableCell className="py-4 px-4 text-xs text-slate-600">{new Date(expense.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="py-4 px-4 text-xs font-medium text-slate-900">{expense.category}</TableCell>
+                          <TableCell className="py-4 px-4 text-xs text-slate-600">
+                            <div><span className="font-semibold text-slate-800">{expense.title}</span> - {expense.notes}</div>
+                          </TableCell>
+                          <TableCell className="py-4 px-4 text-xs font-bold text-slate-900">₹{expense.amount.toLocaleString()}</TableCell>
+                          <TableCell className="py-4 px-4">
+                            <Badge className={`rounded-full px-3 py-1 font-bold tracking-tight text-[10px] uppercase ${getStatusStyle(expense.status)}`}>
+                              {expense.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      <Card className="border border-slate-200/70 rounded-3xl shadow-sm overflow-hidden">
-        <CardHeader 
-          className="px-3 cursor-pointer hover:bg-slate-50 transition-colors"
-          onClick={() => setIsGuideExpanded(!isGuideExpanded)}
-        >
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Expense category guide</CardTitle>
-            <span className={`text-slate-500 transition-transform text-sm ${isGuideExpanded ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </div>
-        </CardHeader>
-        {isGuideExpanded && (
-          <CardContent className="p-3 text-xs text-slate-600 space-y-2">
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Food: ₹{categoryTotals.Food.toLocaleString()} ({((categoryTotals.Food / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Meals, groceries, nutrition and snacks.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Utilities: ₹{categoryTotals.Utilities.toLocaleString()} ({((categoryTotals.Utilities / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Electricity, water, gas, internet and waste services.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Medical: ₹{categoryTotals.Medical.toLocaleString()} ({((categoryTotals.Medical / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Medicines, clinic visits and health supplies.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Education: ₹{categoryTotals.Education.toLocaleString()} ({((categoryTotals.Education / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Books, tuition, uniforms and learning materials.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Staff: ₹{categoryTotals.Staff.toLocaleString()} ({((categoryTotals.Staff / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Salaries and wages for warden, cooks, and support staff.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Maintenance: ₹{categoryTotals.Maintenance.toLocaleString()} ({((categoryTotals.Maintenance / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Repairs, cleaning and facilities upkeep.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Supplies: ₹{categoryTotals.Supplies.toLocaleString()} ({((categoryTotals.Supplies / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Bedding, toiletries, kitchen and school supplies.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Activities: ₹{categoryTotals.Activities.toLocaleString()} ({((categoryTotals.Activities / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Sports, events, outings and wellness programs.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Transport: ₹{categoryTotals.Transport.toLocaleString()} ({((categoryTotals.Transport / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>School trips, medical transport and deliveries.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Administration: ₹{categoryTotals.Administration.toLocaleString()} ({((categoryTotals.Administration / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Office costs, recordkeeping and transaction fees.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">Emergency: ₹{categoryTotals.Emergency.toLocaleString()} ({((categoryTotals.Emergency / totalExpenses) * 100).toFixed(1)}%)</p>
-              <p>Contingency expenses. Unexpected repairs, emergency medical or relocation costs.</p>
-            </div>
-          </CardContent>
-        )}
-      </Card>
+        <motion.div variants={itemVariants}>
+          <Card 
+            className="border border-slate-200/70 rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow group bg-white" 
+            onClick={() => setIsGuideExpanded(!isGuideExpanded)}
+          >
+            <CardHeader className="bg-white group-hover:bg-slate-50/50 p-6 transition-colors border-b border-transparent data-[expanded=true]:border-slate-100" data-expanded={isGuideExpanded}>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-base">Expense Category Guide</CardTitle>
+                  <CardDescription className="text-xs">Learn how expenses are categorized</CardDescription>
+                </div>
+                <div className="bg-slate-50 p-2 rounded-full border border-slate-100 shadow-sm">
+                  <ChevronDown 
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${isGuideExpanded ? 'rotate-180' : ''}`} 
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            {isGuideExpanded && (
+              <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/30">
+                {Object.entries(categoryTotals).map(([key, value]) => {
+                  const categoryName = key as Category;
+                  const percentage = totalExpenses > 0 ? ((value / totalExpenses) * 100).toFixed(1) : "0.0";
+                  
+                  let description = "";
+                  switch (categoryName) {
+                    case 'Food': description = "Meals, groceries, nutrition and snacks."; break;
+                    case 'Utilities': description = "Electricity, water, gas, internet and waste services."; break;
+                    case 'Medical': description = "Medicines, clinic visits and health supplies."; break;
+                    case 'Education': description = "Books, tuition, uniforms and learning materials."; break;
+                    case 'Maintenance': description = "Repairs, cleaning and facilities upkeep."; break;
+                    case 'Cosmetics': description = "Personal care and cosmetic items."; break;
+                    case 'Events': description = "Special occasions and gatherings."; break;
+                    case 'Other': description = "Miscellaneous operational expenses."; break;
+                  }
+
+                  return (
+                    <div key={categoryName} className="space-y-1 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-bold text-slate-800 text-sm">{categoryName}</p>
+                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 font-semibold">{percentage}%</Badge>
+                      </div>
+                      <p className="font-semibold text-slate-900 text-xs">₹{value.toLocaleString()}</p>
+                      <p className="text-xs text-slate-500 leading-relaxed mt-1">{description}</p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            )}
+          </Card>
+      </motion.div>
+      </motion.div>
 
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-2xl rounded-4xl border-none shadow-2xl p-0 bg-white">
@@ -599,50 +613,86 @@ export default function ExpensesPage() {
                     value={draftExpense.category}
                     onValueChange={(value) => setDraftExpense({ ...draftExpense, category: value as Category })}
                   >
-                    <SelectTrigger className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-slate-600"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                      <SelectItem value="Food">Food</SelectItem>
-                      <SelectItem value="Utilities">Utilities</SelectItem>
-                      <SelectItem value="Medical">Medical</SelectItem>
-                      <SelectItem value="Education">Education</SelectItem>
-                      <SelectItem value="Staff">Staff</SelectItem>
-                      <SelectItem value="Maintenance">Maintenance</SelectItem>
-                      <SelectItem value="Supplies">Supplies</SelectItem>
-                      <SelectItem value="Activities">Activities</SelectItem>
-                      <SelectItem value="Transport">Transport</SelectItem>
-                      <SelectItem value="Administration">Administration</SelectItem>
-                      <SelectItem value="Emergency">Emergency</SelectItem>
+                    <SelectTrigger className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-slate-600 focus:ring-1 focus:ring-slate-300"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5">
+                      <SelectItem value="Food" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Food</SelectItem>
+                      <SelectItem value="Utilities" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Utilities</SelectItem>
+                      <SelectItem value="Medical" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Medical</SelectItem>
+                      <SelectItem value="Education" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Education</SelectItem>
+                      <SelectItem value="Maintenance" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Maintenance</SelectItem>
+                      <SelectItem value="Cosmetics" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Cosmetics</SelectItem>
+                      <SelectItem value="Events" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Events</SelectItem>
+                      <SelectItem value="Other" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Title</p>
+                  <Input
+                    type="text"
+                    value={draftExpense.title}
+                    onChange={(event) => setDraftExpense({ ...draftExpense, title: event.target.value })}
+                    placeholder="Expense title"
+                    className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm focus-visible:ring-1 focus-visible:ring-slate-300 w-full"
+                  />
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Amount</p>
                   <Input
                     type="number"
-                    value={draftExpense.amount}
+                    value={draftExpense.amount || ''}
                     onChange={(event) => setDraftExpense({ ...draftExpense, amount: Number(event.target.value) })}
                     placeholder="Amount"
-                    className="mt-2"
+                    className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm focus-visible:ring-1 focus-visible:ring-slate-300 w-full"
                   />
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Date</p>
-                  <Input
-                    type="date"
-                    value={draftExpense.date}
-                    onChange={(event) => setDraftExpense({ ...draftExpense, date: event.target.value })}
-                    className="mt-2"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={`mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-left font-normal w-full justify-start ${!draftExpense.date ? "text-slate-400" : "text-slate-900"} hover:bg-slate-100/50 focus-visible:ring-1 focus-visible:ring-slate-300 shadow-none`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-slate-500" />
+                        {draftExpense.date ? format(new Date(draftExpense.date), "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-3xl shadow-xl border-slate-100 overflow-hidden" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={draftExpense.date ? new Date(draftExpense.date) : undefined}
+                        onSelect={(date) => setDraftExpense({ ...draftExpense, date: date ? date.toISOString() : '' })}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Home</p>
+                  <Select
+                    value={draftExpense.home}
+                    onValueChange={(value) => setDraftExpense({ ...draftExpense, home: value as Home })}
+                  >
+                    <SelectTrigger className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-slate-600 focus:ring-1 focus:ring-slate-300"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5">
+                      <SelectItem value="All" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">All Homes</SelectItem>
+                      <SelectItem value="Jammu" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Jammu</SelectItem>
+                      <SelectItem value="Anantnag" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Anantnag</SelectItem>
+                      <SelectItem value="Kupwara" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Kupwara</SelectItem>
+                      <SelectItem value="Beerwah" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Beerwah</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Description</p>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Notes / Description</p>
                 <Textarea
-                  value={draftExpense.description}
-                  onChange={(event) => setDraftExpense({ ...draftExpense, description: event.target.value })}
+                  value={draftExpense.notes}
+                  onChange={(event) => setDraftExpense({ ...draftExpense, notes: event.target.value })}
                   placeholder="Add a short description"
-                  className="mt-2"
+                  className="mt-2 rounded-2xl bg-slate-50 border-slate-200 p-4 text-sm focus-visible:ring-1 focus-visible:ring-slate-300 w-full resize-none"
                   rows={4}
                 />
               </div>
@@ -653,10 +703,12 @@ export default function ExpensesPage() {
                   value={draftExpense.status}
                   onValueChange={(value) => setDraftExpense({ ...draftExpense, status: value as Status })}
                 >
-                  <SelectTrigger className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-slate-600"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
+                  <SelectTrigger className="mt-2 h-12 rounded-2xl bg-slate-50 border-slate-200 px-4 text-sm text-slate-600 focus:ring-1 focus:ring-slate-300"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-3xl border-slate-100 shadow-xl p-1.5">
+                    <SelectItem value="paid" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Paid</SelectItem>
+                    <SelectItem value="pending" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Pending</SelectItem>
+                    <SelectItem value="approved" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Approved</SelectItem>
+                    <SelectItem value="rejected" className="focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:bg-slate-100 transition-colors duration-200 cursor-pointer rounded-xl font-medium text-xs py-2">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -665,15 +717,14 @@ export default function ExpensesPage() {
             <div className="p-6 text-sm text-slate-500">Select a row or click Add Expense to create a new entry.</div>
           )}
           <DialogFooter className="p-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-10 px-6 text-xs font-bold">Close</Button>
-            <Button onClick={handleSaveExpense} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-6 text-xs font-bold">Save</Button>
+            <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-full h-10 px-6 text-xs font-bold hover:bg-slate-100 hover:text-slate-900 transition-all active:scale-95">Close</Button>
+            <Button onClick={handleSaveExpense} className="rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-md h-10 px-6 text-xs font-bold transition-all active:scale-95">Save</Button>
             {selectedExpense && (
-              <Button variant="destructive" onClick={handleDelete} className="rounded-xl h-10 px-6 text-xs font-bold">Delete</Button>
+              <Button variant="destructive" onClick={handleDelete} className="rounded-full h-10 px-6 text-xs font-bold shadow-md transition-all active:scale-95">Delete</Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  </div>
   );
 }

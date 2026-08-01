@@ -3,6 +3,23 @@
    ========================================= */
 
 .cm-page {
+  /* Scoped CSS variables from global.css */
+  --bg-main: #f4f7fd;
+  --bg-card: #ffffff;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #eef2f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --brand-blue: #3b82f6;
+  --brand-blue-mid: #60a5fa;
+  --brand-blue-light: #eff6ff;
+  --brand-teal: #06b6d4;
+  --border-radius-lg: 1.5rem;
+  --border-radius-md: 1rem;
+  --border-radius-sm: 0.625rem;
+  --shadow-soft: 0 4px 20px rgba(0,0,0,0.04);
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+
   padding: 2rem 2rem 4rem;
   max-width: 1260px;
   margin: 0 auto;
@@ -38,7 +55,7 @@
 .cm-title {
   font-size: 1.8rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #312e81, #7c3aed 50%, #0ea5e9);
+  background: linear-gradient(135deg, #0f172a, #334155 50%, #64748b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -49,9 +66,9 @@
 .cm-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #fce7f3 0%, #ede9fe 35%, #dbeafe 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 35%, #e2e8f0 100%);
   border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 18px 44px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
   border-radius: var(--border-radius-lg);
   padding: 2rem 2.5rem;
   margin-bottom: 1.75rem;
@@ -71,7 +88,7 @@
 .cm-hero-blob-1 {
   width: 200px;
   height: 200px;
-  background: #c7d2fe;
+  background: #cbd5e1;
   top: -70px;
   right: 8%;
 }
@@ -79,7 +96,7 @@
 .cm-hero-blob-2 {
   width: 140px;
   height: 140px;
-  background: #fbcfe8;
+  background: #e2e8f0;
   bottom: -50px;
   right: 18%;
 }
@@ -161,14 +178,14 @@
 }
 
 .cm-chip:hover {
-  border-color: var(--brand-blue);
-  color: var(--brand-blue);
+  border-color: #0f172a;
+  color: #0f172a;
 }
 
 .cm-chip--active {
-  background: var(--brand-blue);
+  background: #0f172a;
   color: #fff;
-  border-color: var(--brand-blue);
+  border-color: #0f172a;
 }
 
 /* ── LAYOUT ── */
@@ -279,9 +296,9 @@
   font-weight: 800;
   padding: 0.15rem 0.5rem;
   border-radius: 50px;
-  background: #ede9fe;
-  color: #6d28d9;
-  border: 1px solid #ddd6fe;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
 .cm-post-meta {
@@ -374,7 +391,7 @@
 /* ── SIDEBAR ── */
 .cm-sidebar {
   position: sticky;
-  top: 1.5rem;
+  top: 6.5rem;
 }
 
 .cm-sidebar-card {
@@ -397,7 +414,7 @@
 
 /* Submit card */
 .cm-submit-card {
-  border-color: #ede9fe;
+  border-color: #e2e8f0;
 }
 
 .cm-submit-hint {
@@ -440,8 +457,8 @@
 
 .cm-cat-select {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
   border: 1.5px solid #e2e8f0;
   font-family: 'Nunito', sans-serif;
   font-size: 0.82rem;
@@ -453,12 +470,16 @@
   margin-bottom: 0.75rem;
 }
 
+.cm-cat-select:focus {
+  border-color: #cbd5e1;
+}
+
 .cm-submit-textarea {
   width: 100%;
-  background: #f4f7fd;
+  background: #f8fafc;
   border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.75rem 0.9rem;
+  border-radius: 1.5rem;
+  padding: 1rem;
   font-family: 'Nunito', sans-serif;
   font-size: 0.88rem;
   color: var(--text-primary);
@@ -469,7 +490,7 @@
 }
 
 .cm-submit-textarea:focus {
-  border-color: #a78bfa;
+  border-color: #cbd5e1;
 }
 
 .cm-submit-textarea::placeholder {
@@ -478,11 +499,11 @@
 
 .cm-submit-btn {
   width: 100%;
-  background: #6d28d9;
+  background: #0f172a;
   color: #fff;
   border: none;
-  border-radius: 12px;
-  padding: 0.65rem;
+  border-radius: 50px;
+  padding: 0.75rem;
   font-family: 'Nunito', sans-serif;
   font-size: 0.87rem;
   font-weight: 800;
@@ -495,7 +516,7 @@
 }
 
 .cm-submit-btn:hover {
-  background: #5b21b6;
+  background: #1e293b;
   transform: translateY(-1px);
 }
 
@@ -507,10 +528,10 @@
 
 .cm-media-upload {
   width: 100%;
-  border: 1.5px dashed #c4b5fd;
-  border-radius: 12px;
-  background: #faf5ff;
-  color: #6d28d9;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 50px;
+  background: #f8fafc;
+  color: #475569;
   font-size: 0.8rem;
   font-weight: 800;
   display: flex;
@@ -582,8 +603,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #eff6ff;
-  color: var(--brand-blue);
+  background: #f1f5f9;
+  color: #334155;
   font-size: 0.75rem;
   font-weight: 900;
   display: flex;

@@ -1,16 +1,21 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { CalendarClock, Check, Hash, MessageSquarePlus, Pencil, Pin, Search, Send, Trash2, Vote, X } from 'lucide-react';
+import { FormEvent, ReactNode, useEffect, useMemo, useState, useRef, useDeferredValue } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CalendarClock, Hash, MessageSquarePlus, Pencil, Pin, Search, Send, Trash2, Vote, X, ImagePlus, Video, FileText } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/app/warden/Template/components/ui/alert-dialog';
 import { Badge } from '@/app/warden/Template/components/ui/badge';
 import { Button } from '@/app/warden/Template/components/ui/button';
 import { Card, CardContent } from '@/app/warden/Template/components/ui/card';
 import { Input } from '@/app/warden/Template/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/warden/Template/components/ui/select';
-import { Skeleton } from '@/app/warden/Template/components/ui/skeleton';
 import { Textarea } from '@/app/warden/Template/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/app/warden/Template/components/ui/tabs';
+import { Dialog, DialogContent, DialogTitle } from '@/app/warden/Template/components/ui/dialog';
+import { getAvatarUrl } from '@/app/lib/avatar';
 import api from '@/app/lib/api';
+import { cn } from '@/app/warden/Template/lib/utils';
 
 type Status = 'Pending' | 'Approved' | 'Rejected' | 'Forwarded';
 type PostType = 'text' | 'poll';
@@ -39,6 +44,9 @@ interface CommunityPost {
   hostelName: string | { _id: string; name?: string };
   pinned?: boolean;
   canManage?: boolean;
+  profilePic?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'pdf';
 }
 
 type ApiError = {
@@ -53,21 +61,9 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 const emptyPollInputs = ['', ''];
 
-const avatarColors = [
-  'bg-blue-100 text-blue-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
-  'bg-violet-100 text-violet-700',
-  'bg-cyan-100 text-cyan-700',
-  'bg-lime-100 text-lime-700',
-  'bg-fuchsia-100 text-fuchsia-700',
-  'bg-orange-100 text-orange-700',
-  'bg-teal-100 text-teal-700',
-];
 
 const hostelLabel = (hostelName: CommunityPost['hostelName']) =>
-  typeof hostelName === 'string' ? hostelName : hostelName?.name || 'Hostel';
+  typeof hostelName === 'string' ? hostelName : hostelName?.name || 'Community';
 
 const toDisplayDate = (post: CommunityPost) => {
   const dateValue = post.date ? new Date(post.date) : new Date();
@@ -75,13 +71,6 @@ const toDisplayDate = (post: CommunityPost) => {
 };
 
 const totalVotes = (post: CommunityPost) => post.pollOptions.reduce((sum, option) => sum + option.votes, 0);
-const initialFor = (name: string) => name.trim().charAt(0).toUpperCase() || 'W';
-
-const avatarColorFor = (seed: string | number) => {
-  const value = String(seed);
-  const hash = Array.from(value).reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 1), 0);
-  return avatarColors[hash % avatarColors.length];
-};
 
 const normalizeTag = (value: string) => {
   const compact = value.trim().replace(/^#/, '').replace(/\s+/g, '');
@@ -114,7 +103,7 @@ const renderInlineContent = (line: string) =>
 
     if (boldText) {
       return (
-        <strong key={`${part}-${index}`} className="font-bold text-slate-950">
+        <strong key={`${part}-${index}`} className="font-bold text-slate-900">
           {boldText[1].trim()}
         </strong>
       );
@@ -129,20 +118,27 @@ const renderPostContent = (content: string): ReactNode =>
 
     if (heading) {
       return (
-        <h3 key={`${line}-${index}`} className="mb-2 text-base font-bold leading-6 text-slate-950">
+        <h3 key={`${line}-${index}`} className="mb-2 text-[16px] font-bold leading-6 text-slate-900 tracking-tight">
           {heading[1].trim()}
         </h3>
       );
     }
 
     return line.trim() ? (
-      <p key={`${line}-${index}`} className="text-sm leading-6 text-slate-700 break-words">
+      <p key={`${line}-${index}`} className="text-[14px] leading-relaxed text-slate-600 font-medium break-words">
         {renderInlineContent(line)}
       </p>
     ) : null;
   });
 
-export default function CommunityPage() {
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
+  return `${baseUrl}${url}`;
+};
+
+export default function WardenCommunityWall() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [section, setSection] = useState<FeedSection>('latest');
@@ -150,74 +146,96 @@ export default function CommunityPage() {
   const [content, setContent] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [pollInputs, setPollInputs] = useState<string[]>(emptyPollInputs);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<PostType>('text');
   const [editingContent, setEditingContent] = useState('');
   const [editingTagInput, setEditingTagInput] = useState('');
   const [editingPollInputs, setEditingPollInputs] = useState<string[]>(emptyPollInputs);
+  const [acceptType, setAcceptType] = useState('image/*');
+  const [editingMedia, setEditingMedia] = useState<{file?: File, url?: string, type?: string} | null>(null);
+  
+  const [previewMedia, setPreviewMedia] = useState<{url: string, type?: string} | null>(null);
+  
+  const editFileInputRef = useRef<HTMLInputElement>(null);
   const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CommunityPost | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-  const fetchPosts = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get('/warden/posts');
-      setPosts(res.data.map(normalizePost));
-    } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to load posts.'));
-    } finally {
-      setIsLoading(false);
-    }
+  const deferredSection = useDeferredValue(section);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
+  const showMessage = (text: string, type: 'success' | 'error') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3000);
   };
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void fetchPosts();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    const fetchPosts = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.get('/warden/posts');
+        setPosts(res.data.map(normalizePost));
+      } catch (error: unknown) {
+        console.error("Fetch posts error", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPosts();
   }, []);
 
   const filteredPosts = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = deferredSearchTerm.trim().toLowerCase();
 
     return posts
-      .filter((post) => (section === 'pinned' ? post.pinned : true))
+      .filter((post) => (deferredSection === 'pinned' ? post.pinned : true))
       .filter((post) => {
         if (!query) return true;
         const searchable = `${post.author} ${post.creatorRole} ${post.tags.join(' ')} ${post.content}`.toLowerCase();
         return searchable.includes(query);
       })
       .sort((a, b) => {
-        const left = new Date(`${b.date}T${b.time}`).getTime();
-        const right = new Date(`${a.date}T${a.time}`).getTime();
-        return left - right;
+        const getTimestamp = (p: CommunityPost) => {
+          if (!p.date) return 0;
+          const datePart = p.date.split('T')[0];
+          const timePart = p.time ? (p.time.length === 5 ? `${p.time}:00` : p.time) : '00:00:00';
+          return new Date(`${datePart}T${timePart}`).getTime() || 0;
+        };
+        return getTimestamp(b) - getTimestamp(a);
       });
-  }, [posts, searchTerm, section]);
+  }, [posts, deferredSearchTerm, deferredSection]);
 
   const resetDraft = () => {
     setContent('');
     setTagInput('');
     setPollInputs(emptyPollInputs);
     setDraftType('text');
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const validateDraft = () => {
     if (!content.trim()) {
-      alert('Post content is required.');
+      showMessage('Post content is required.', 'error');
       return false;
     }
 
     if (draftType === 'poll') {
       const validOptions = pollInputs.map((option) => option.trim()).filter(Boolean);
       if (validOptions.length < 2) {
-        alert('Poll requires at least 2 options.');
+        showMessage('Poll requires at least 2 options.', 'error');
         return false;
       }
       if (validOptions.length > 4) {
-        alert('Poll can have at most 4 options.');
+        showMessage('Poll can have at most 4 options.', 'error');
         return false;
       }
     }
@@ -241,13 +259,25 @@ export default function CommunityPage() {
   const confirmPublish = async () => {
     try {
       setIsSubmitting(true);
-      const res = await api.post('/warden/posts', buildDraftPayload());
+      const payload = buildDraftPayload();
+      
+      const formData = new FormData();
+      formData.append('content', payload.content);
+      formData.append('type', payload.type);
+      formData.append('tags', JSON.stringify(payload.tags));
+      formData.append('pollOptions', JSON.stringify(payload.pollOptions));
+      if (mediaFile) {
+        formData.append('media', mediaFile);
+      }
+
+      const res = await api.post('/warden/posts', formData);
       setPosts((current) => [normalizePost(res.data.post), ...current]);
       resetDraft();
       setSection('latest');
       setIsPublishConfirmOpen(false);
+      showMessage('Post published successfully!', 'success');
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to publish post.'));
+      showMessage(getErrorMessage(error, 'Failed to publish post.'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -263,6 +293,7 @@ export default function CommunityPage() {
         ? [...post.pollOptions.map((option) => option.text), ...emptyPollInputs].slice(0, Math.max(2, post.pollOptions.length))
         : emptyPollInputs
     );
+    setEditingMedia(null);
   };
 
   const cancelEditing = () => {
@@ -271,34 +302,41 @@ export default function CommunityPage() {
     setEditingContent('');
     setEditingTagInput('');
     setEditingPollInputs(emptyPollInputs);
+    setEditingMedia(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = '';
   };
 
   const saveEditing = async (post: CommunityPost) => {
     if (!editingContent.trim()) {
-      alert('Post content is required.');
+      showMessage('Post content is required.', 'error');
       return;
     }
 
     const trimmedOptions = editingPollInputs.map((option) => option.trim()).filter(Boolean);
     if (editingType === 'poll' && trimmedOptions.length < 2) {
-      alert('Poll requires at least 2 options.');
+      showMessage('Poll requires at least 2 options.', 'error');
       return;
     }
 
     try {
-      const payload = {
-        content: editingContent.trim(),
-        type: editingType,
-        tags: parseTagInput(editingTagInput),
-        pollOptions: editingType === 'poll' ? trimmedOptions : [],
-      };
+      const formData = new FormData();
+      formData.append('content', editingContent.trim());
+      formData.append('type', editingType);
+      formData.append('tags', parseTagInput(editingTagInput).join(','));
+      if (editingType === 'poll') {
+        formData.append('pollOptions', JSON.stringify(trimmedOptions));
+      }
+      if (editingMedia?.file) {
+        formData.append('media', editingMedia.file);
+      }
 
-      const res = await api.put(`/warden/posts/${post._id}`, payload);
-      const updatedPost = normalizePost(res.data);
+      const res = await api.put(`/warden/posts/${post._id}`, formData);
+      const updatedPost = normalizePost(res.data.post || res.data);
       setPosts((current) => current.map((item) => (item._id === post._id ? updatedPost : item)));
       cancelEditing();
+      showMessage('Post updated successfully!', 'success');
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update post.'));
+      showMessage(getErrorMessage(error, 'Failed to update post.'), 'error');
     }
   };
 
@@ -306,338 +344,673 @@ export default function CommunityPage() {
     if (!deleteTarget) return;
 
     try {
+      setIsDeleting(true);
       await api.delete(`/warden/posts/${deleteTarget._id}`);
       setPosts((current) => current.filter((post) => post._id !== deleteTarget._id));
       if (editingPostId === deleteTarget._id) {
         cancelEditing();
       }
       setDeleteTarget(null);
+      showMessage('Post deleted.', 'success');
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete post.'));
+      showMessage(getErrorMessage(error, 'Failed to delete post.'), 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleVote = async (post: CommunityPost, optionIndex: number) => {
     try {
       const res = await api.post(`/warden/posts/${post._id}/vote`, { optionIndex });
-      setPosts((current) => current.map((item) => (item._id === post._id ? res.data.post : item)));
+      const updatedPost = normalizePost(res.data.post);
+      setPosts((current) => current.map((item) => (item._id === post._id ? updatedPost : item)));
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to vote.'));
+      showMessage(getErrorMessage(error, 'Failed to vote.'), 'error');
     }
   };
 
   const togglePin = async (post: CommunityPost) => {
     try {
       const res = await api.put(`/warden/posts/${post._id}/pin`, { pinned: !post.pinned });
-      const updatedPost = normalizePost(res.data);
+      const updatedPost = normalizePost(res.data.post || res.data);
       setPosts((current) => current.map((item) => (item._id === post._id ? updatedPost : item)));
+      showMessage(updatedPost.pinned ? 'Post pinned.' : 'Post unpinned.', 'success');
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update pin status.'));
+      showMessage(getErrorMessage(error, 'Failed to update pin status.'), 'error');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-6 lg:px-8">
-        <div className="sticky top-14 z-30 -mx-4 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-          <div className="relative w-full">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-[#F4F5F7] text-slate-900 font-sans"
+    >
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 md:gap-6 p-4 md:p-6 lg:p-8">
+        <AnimatePresence>
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={cn(
+                "px-4 py-3 rounded-xl flex items-center gap-3 text-[14px] font-bold border shadow-sm",
+                message.type === 'error' 
+                  ? "bg-red-50 text-red-600 border-red-100"
+                  : "bg-blue-50 text-blue-600 border-emerald-100"
+              )}
+            >
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                message.type === 'error' ? "bg-red-500" : "bg-slate-300"
+              )} />
+              {message.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <Dialog open={!!previewMedia} onOpenChange={(open) => !open && setPreviewMedia(null)}>
+          <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-0 shadow-none">
+             <DialogTitle className="hidden">Media Preview</DialogTitle>
+             {previewMedia && (
+                <div className="flex items-center justify-center w-full h-[80vh]">
+                  {previewMedia.type?.startsWith('video') ? (
+                    <video src={getMediaUrl(previewMedia.url)} controls className="max-w-full max-h-full rounded-lg shadow-2xl" />
+                  ) : (
+                    <img src={getMediaUrl(previewMedia.url)} alt="Preview" className="max-w-full max-h-full rounded-lg shadow-2xl" />
+                  )}
+                </div>
+             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Header & Search */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl md:text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+            >
+              Warden Community
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-[15px] text-slate-500 mt-2"
+            >
+              Connect, share resources, and create polls.
+            </motion.p>
+          </div>
+          
+          <div className="relative w-full md:w-[350px]">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search by name or #hashtag"
-              className="h-11 w-full rounded-xl border-slate-200 bg-white pl-11 text-sm shadow-sm"
+              className="h-12 w-full rounded-2xl border-slate-200 bg-white pl-12 text-[14px] font-medium text-slate-700 shadow-sm focus-visible:ring-slate-300/20 focus-visible:border-black transition-all"
             />
           </div>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px] 2xl:grid-cols-[minmax(0,1fr)_350px]">
-          <section className="order-2 min-w-0 space-y-4 xl:order-1">
-            <div className="space-y-2">
-              <h2 className="text-lg font-bold tracking-tight text-slate-950">Your Feed</h2>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSection('latest')}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${section === 'latest' ? 'border-blue-100 bg-blue-50 text-blue-700 shadow-sm' : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-white hover:text-slate-950'}`}
-                >
-                  Latest
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSection('pinned')}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${section === 'pinned' ? 'border-blue-100 bg-blue-50 text-blue-700 shadow-sm' : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-white hover:text-slate-950'}`}
-                >
-                  Pinned
-                </button>
-              </div>
+        <div className="grid gap-6 md:gap-8 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+          {/* Feed Column */}
+          <section className="order-2 lg:order-1 min-w-0 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-2">
+              <h2 className="text-lg font-bold tracking-tight text-slate-900">Your Feed</h2>
+              <Tabs value={section} onValueChange={(v) => setSection(v as FeedSection)} suppressHydrationWarning>
+                <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center max-w-full overflow-x-auto hide-scrollbar">
+                  <TabsTrigger value="latest" className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                    {section === 'latest' && (
+                      <motion.div
+                        layoutId="community-feed-section"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <span className="relative z-10">Latest</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pinned" className="relative rounded-full h-full px-6 text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                    {section === 'pinned' && (
+                      <motion.div
+                        layoutId="community-feed-section"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <span className="relative z-10">Pinned</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
-            <div className="space-y-4 pb-6">
+            <div className="space-y-5 pb-10">
+              <AnimatePresence mode="wait">
               {isLoading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <Card key={index} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Skeleton className="h-11 w-11 rounded-full" />
-                        <div className="min-w-0 space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col gap-5"
+                >
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white rounded-[28px] p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] animate-pulse border border-transparent">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-4 w-full">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 shrink-0"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 w-32 bg-slate-200 rounded-md"></div>
+                            <div className="h-3 w-24 bg-slate-100 rounded-md"></div>
+                          </div>
                         </div>
+                        <div className="h-6 w-16 bg-slate-100 rounded-full shrink-0"></div>
                       </div>
-                      <Skeleton className="h-8 w-8 rounded" />
+                      <div className="mt-6 space-y-2">
+                        <div className="h-3 w-full bg-slate-100 rounded-md"></div>
+                        <div className="h-3 w-full bg-slate-100 rounded-md"></div>
+                        <div className="h-3 w-3/4 bg-slate-100 rounded-md"></div>
+                      </div>
+                      <div className="mt-6 flex items-center gap-4">
+                        <div className="h-8 w-20 bg-slate-100 rounded-full"></div>
+                        <div className="h-8 w-24 bg-slate-100 rounded-full"></div>
+                      </div>
                     </div>
-                    <div className="mt-5 space-y-2">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Skeleton className="h-6 w-16 rounded-full" />
-                      <Skeleton className="h-6 w-20 rounded-full" />
-                    </div>
+                  ))}
+                </motion.div>
+              ) : posts.length === 0 ? (
+                <motion.div
+                  key="empty-all"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <Card className="rounded-[32px] border-0 bg-white/50 border-slate-200/50 border-dashed shadow-sm">
+                    <CardContent className="flex flex-col items-center justify-center py-24 text-center">
+                      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                        <MessageSquarePlus className="h-7 w-7 text-slate-400" />
+                      </div>
+                      <p className="font-bold text-slate-800 text-lg tracking-tight">No posts yet</p>
+                      <p className="mt-1 text-[14px] text-slate-500 font-medium max-w-sm">Be the first to share an update, question, or resource with the community.</p>
+                    </CardContent>
                   </Card>
-                ))
+                </motion.div>
               ) : filteredPosts.length === 0 ? (
-                <Card className="border-dashed border-slate-300 bg-white shadow-sm">
-                  <CardContent className="flex min-h-48 flex-col items-center justify-center text-center">
-                    <Search className="mb-3 h-8 w-8 text-slate-300" />
-                    <p className="font-semibold text-slate-800">No posts found</p>
-                    <p className="mt-1 text-sm text-slate-500">Try another name or hashtag.</p>
+                <motion.div
+                  key="empty-search"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                <Card className="rounded-[32px] border-0 bg-white/50 border-slate-200/50 border-dashed shadow-sm">
+                  <CardContent className="flex flex-col items-center justify-center py-24 text-center">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                      <Search className="h-7 w-7 text-slate-400" />
+                    </div>
+                    <p className="font-bold text-slate-800 text-lg tracking-tight">No posts found</p>
+                    <p className="mt-1 text-[14px] text-slate-500 font-medium">Try searching for a different name or hashtag.</p>
                   </CardContent>
                 </Card>
+                </motion.div>
               ) : (
-                filteredPosts.map((post) => {
-                  const votes = totalVotes(post);
-                  const isOwnPost = Boolean(post.canManage);
-                  const isEditing = editingPostId === post._id;
+                <motion.div
+                  key="list"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col gap-5"
+                >
+                  {filteredPosts.map((post) => {
+                    const votes = totalVotes(post);
+                    const isOwnPost = Boolean(post.canManage);
+                    const isEditing = editingPostId === post._id;
 
-                  return (
-                    <article key={post._id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColorFor(`${post.author}-${post.id}`)}`}>
-                            {initialFor(post.author)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h2 className="truncate text-sm font-bold text-slate-950">{post.author}</h2>
-                              {post.pinned && (
-                                <Badge className="gap-1 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">
-                                  <Pin className="h-3 w-3" /> Pinned
-                                </Badge>
-                              )}
+                    return (
+                      <article 
+                        key={post._id} 
+                        className={`rounded-[28px] border-0 bg-white p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 relative overflow-hidden group ${post.pinned ? 'ring-1 ring-amber-200/50' : ''}`}
+                      >
+                        {post.pinned && <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-400" />}
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="flex items-center sm:items-start gap-4">
+                            <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-100 shadow-sm bg-slate-100">
+                               <img src={post.profilePic || getAvatarUrl(post.author)} alt={post.author} className="w-full h-full object-cover" />
                             </div>
-                            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                              <CalendarClock className="h-3.5 w-3.5" />
-                              {toDisplayDate(post)} at {post.time} | {hostelLabel(post.hostelName)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-700 capitalize">
-                            {post.creatorRole}
-                          </Badge>
-                          {isOwnPost && !isEditing && (
-                            <div className="flex items-center gap-1">
-                              <Button type="button" variant="ghost" size="icon" onClick={() => togglePin(post)} className="h-8 w-8 text-slate-500 hover:text-amber-600">
-                                <Pin className={`h-4 w-4 ${post.pinned ? 'fill-current text-amber-600' : ''}`} />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" onClick={() => startEditing(post)} className="h-8 w-8 text-slate-500 hover:text-blue-700">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" onClick={() => setDeleteTarget(post)} className="h-8 w-8 text-slate-500 hover:text-red-600">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h2 className="text-[15px] font-bold text-slate-900 tracking-tight">{post.author}</h2>
+                                {post.pinned && (
+                                  <Badge className="gap-1 border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide shadow-sm">
+                                    <Pin className="h-3 w-3" /> Pinned
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="mt-1 flex items-center gap-1.5 text-[12px] font-bold text-slate-400">
+                                <CalendarClock className="h-3.5 w-3.5" />
+                                {toDisplayDate(post)} at {post.time} <span className="mx-1 text-slate-300">•</span> {hostelLabel(post.hostelName)}
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {isEditing ? (
-                        <div className="mt-5 space-y-3 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
-                          <Select value={editingType} onValueChange={(value) => setEditingType(value as PostType)}>
-                            <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="text">Text</SelectItem>
-                              <SelectItem value="poll">Poll</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Textarea
-                            value={editingContent}
-                            onChange={(event) => setEditingContent(event.target.value)}
-                            className="min-h-28 resize-none rounded-lg border-slate-200 bg-white text-sm leading-6"
-                          />
-                          <div className="relative">
-                            <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <Input
-                              value={editingTagInput}
-                              onChange={(event) => setEditingTagInput(event.target.value)}
-                              placeholder="Tags separated by commas"
-                              className="h-10 rounded-lg border-slate-200 bg-white pl-10 text-sm"
-                            />
                           </div>
-                          {editingType === 'poll' && (
-                            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
-                              {editingPollInputs.map((option, index) => (
-                                <div key={`${post._id}-edit-${index}`} className="flex items-center gap-2">
-                                  <Input
-                                    value={option}
-                                    onChange={(event) =>
-                                      setEditingPollInputs((current) =>
-                                        current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item))
-                                      )
-                                    }
-                                    placeholder={`Option ${index + 1}`}
-                                    className="h-9 rounded-lg text-sm"
-                                  />
-                                  {editingPollInputs.length > 2 && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setEditingPollInputs((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                                      className="h-9 w-9 shrink-0 text-slate-500 hover:text-red-600"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                              ))}
-                              {editingPollInputs.length < 4 && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => setEditingPollInputs((current) => [...current, ''])}
-                                  className="h-9 w-full border-dashed text-xs"
-                                >
-                                  Add option
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Badge className="border-0 bg-slate-100 text-slate-600 capitalize text-[11px] font-bold tracking-wide px-3 py-1">
+                              {post.creatorRole}
+                            </Badge>
+                            {isOwnPost && !isEditing && (
+                              <div className="flex items-center gap-1 ml-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => togglePin(post)} className="h-8 w-8 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg">
+                                  <Pin className={`h-4 w-4 ${post.pinned ? 'fill-current text-amber-600' : ''}`} />
                                 </Button>
-                              )}
+                                <Button type="button" variant="ghost" size="icon" onClick={() => startEditing(post)} className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-blue-50 rounded-lg">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => setDeleteTarget(post)} className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {isEditing ? (
+                          <div className="mt-6 space-y-4 rounded-[20px] border border-slate-200 bg-slate-50/50 p-5 shadow-sm">
+                            <Select value={editingType} onValueChange={(value) => setEditingType(value as PostType)}>
+                              <SelectTrigger className="h-10 w-full sm:w-[140px] rounded-[14px] border-slate-200 bg-white font-bold text-[14px] text-slate-800 shadow-sm hover:bg-slate-50 focus:ring-0 focus:border-slate-300">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-2xl border-slate-100 shadow-xl bg-white p-2">
+                                <SelectItem value="text" className="font-bold text-[14px] text-slate-700 focus:bg-indigo-600 focus:text-white rounded-xl py-2.5 px-4 cursor-pointer mb-1 transition-colors">Text Post</SelectItem>
+                                <SelectItem value="poll" className="font-bold text-[14px] text-slate-700 focus:bg-indigo-600 focus:text-white rounded-xl py-2.5 px-4 cursor-pointer transition-colors">Poll Post</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Textarea
+                              value={editingContent}
+                              onChange={(event) => setEditingContent(event.target.value)}
+                              className="min-h-[100px] resize-y rounded-[16px] border-gray-200 bg-white text-[14px] font-medium leading-relaxed p-4 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                            />
+                            <div className="relative">
+                              <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                              <Input
+                                value={editingTagInput}
+                                onChange={(event) => setEditingTagInput(event.target.value)}
+                                placeholder="Tags separated by commas"
+                                className="h-[42px] rounded-[16px] border-gray-200 bg-white pl-11 text-[14px] font-medium focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                              />
                             </div>
-                          )}
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" onClick={cancelEditing} className="h-9 gap-2">
-                              <X className="h-4 w-4" /> Cancel
-                            </Button>
-                            <Button type="button" onClick={() => saveEditing(post)} className="h-9 gap-2 bg-blue-700 text-white hover:bg-blue-800">
-                              <Check className="h-4 w-4" /> Save
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-5 space-y-2">{renderPostContent(post.content)}</div>
-                      )}
 
-                      {!isEditing && post.tags.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {post.tags.map((tag) => (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={() => setSearchTerm(tag)}
-                              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700"
-                            >
-                              {tag}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setAcceptType('image/*');
+                                  if (editFileInputRef.current) {
+                                    editFileInputRef.current.accept = 'image/*';
+                                    editFileInputRef.current.click();
+                                  }
+                                }}
+                                className="h-9 rounded-[14px] bg-white text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 border-slate-200"
+                              >
+                                <ImagePlus className="mr-2 h-4 w-4 text-blue-500" /> New Image
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setAcceptType('video/*');
+                                  if (editFileInputRef.current) {
+                                    editFileInputRef.current.accept = 'video/*';
+                                    editFileInputRef.current.click();
+                                  }
+                                }}
+                                className="h-9 rounded-[14px] bg-white text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 border-slate-200"
+                              >
+                                <Video className="mr-2 h-4 w-4 text-emerald-500" /> New Video
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setAcceptType('.pdf');
+                                  if (editFileInputRef.current) {
+                                    editFileInputRef.current.accept = '.pdf';
+                                    editFileInputRef.current.click();
+                                  }
+                                }}
+                                className="h-9 rounded-[14px] bg-white text-[13px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 border-slate-200"
+                              >
+                                <FileText className="mr-2 h-4 w-4 text-rose-500" /> New PDF
+                              </Button>
+                            </div>
+                            <input
+                              type="file"
+                              ref={editFileInputRef}
+                              className="hidden"
+                              accept={acceptType}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (file.type.startsWith('video/')) setEditingMedia({ type: 'video', file });
+                                  else if (file.type === 'application/pdf') setEditingMedia({ type: 'pdf', file });
+                                  else setEditingMedia({ type: 'image', file });
+                                }
+                              }}
+                            />
 
-                      {!isEditing && post.type === 'poll' && (
-                        <div className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            <span className="flex items-center gap-2"><Vote className="h-4 w-4 text-blue-600" /> Poll</span>
-                            <span>{votes} total votes</span>
+                            {!editingMedia && post.mediaUrl && (
+                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center max-h-[300px] opacity-80 pointer-events-none relative">
+                                <div className="absolute top-2 left-2 z-10">
+                                  <Badge className="bg-slate-900/80 text-white font-bold backdrop-blur-sm border-0 shadow-sm">Current Media</Badge>
+                                </div>
+                                {post.mediaType?.startsWith('video') ? (
+                                  <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                                    <video src={getMediaUrl(post.mediaUrl)} className="w-full h-auto object-contain max-h-[300px]" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                      <div className="bg-white/80 p-3 rounded-full shadow-lg backdrop-blur-sm"><Video className="w-6 h-6 text-slate-800" /></div>
+                                    </div>
+                                  </div>
+                                ) : post.mediaType?.includes('pdf') ? (
+                                  <div className="flex flex-col items-center justify-center h-48 bg-slate-100 p-4">
+                                    <iframe src={getMediaUrl(post.mediaUrl)} className="w-full flex-1 rounded-t-lg pointer-events-none" title="PDF Document" />
+                                    <div className="w-full p-2 bg-white flex justify-center mt-2 rounded-b-lg border border-slate-200">
+                                      <a href={getMediaUrl(post.mediaUrl)} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-all">
+                                        Open PDF
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <img src={getMediaUrl(post.mediaUrl)} alt="Post media" className="w-full h-auto object-contain max-h-[300px] cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})} />
+                                )}
+                              </div>
+                            )}
+
+                            {editingMedia && (
+                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-blue-50/50 flex flex-col items-center justify-center min-h-[150px] max-h-[300px] relative p-4">
+                                <div className="absolute top-2 left-2 z-10">
+                                  <Badge className="bg-blue-600 text-white font-bold border-0 shadow-sm">New Attachment</Badge>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMedia(null);
+                                    if (editFileInputRef.current) editFileInputRef.current.value = '';
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-sm transition-all z-20"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                                {editingMedia.type === 'video' ? (
+                                  <video src={URL.createObjectURL(editingMedia.file!)} controls className="w-full h-auto object-contain max-h-[260px] rounded-lg mt-6" />
+                                ) : editingMedia.type === 'pdf' ? (
+                                  <div className="flex flex-col items-center text-slate-500 mt-6">
+                                    <FileText className="w-12 h-12 mb-2 text-rose-500" />
+                                    <span className="font-medium text-sm">{editingMedia.file?.name}</span>
+                                  </div>
+                                ) : (
+                                  <img src={URL.createObjectURL(editingMedia.file!)} alt="Preview" className="w-full h-auto object-contain max-h-[260px] rounded-lg mt-6 shadow-sm" />
+                                )}
+                              </div>
+                            )}
+
+                            {editingType === 'poll' && (
+                              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                                {editingPollInputs.map((option, index) => (
+                                  <div key={`${post._id}-edit-${index}`} className="flex items-center gap-2">
+                                    <Input
+                                      value={option}
+                                      onChange={(event) =>
+                                        setEditingPollInputs((current) =>
+                                          current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item))
+                                        )
+                                      }
+                                      placeholder={`Option ${index + 1}`}
+                                      className="h-[42px] rounded-[16px] border-gray-200 bg-white text-[14px] font-medium focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                                    />
+                                    {editingPollInputs.length > 2 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setEditingPollInputs((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                                        className="h-11 w-11 shrink-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                                      >
+                                        <X className="h-5 w-5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                                {editingPollInputs.length < 4 && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setEditingPollInputs((current) => [...current, ''])}
+                                    className="h-11 w-full bg-white hover:bg-slate-50 border-dashed border-slate-300 hover:border-slate-400 text-slate-500 hover:text-slate-700 font-bold rounded-xl transition-all"
+                                  >
+                                    + Add poll option
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex justify-end gap-3 pt-2">
+                              <Button type="button" variant="outline" onClick={cancelEditing} className="h-9 px-5 rounded-full font-bold border-slate-200 text-slate-600 text-[13px] hover:bg-slate-50">
+                                Cancel
+                              </Button>
+                              <Button type="button" onClick={() => saveEditing(post)} className="h-9 px-6 rounded-full font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-sm text-[13px]">
+                                Save Changes
+                              </Button>
+                            </div>
                           </div>
-                          {post.pollOptions.map((option, index) => {
-                            const percent = votes ? Math.round((option.votes / votes) * 100) : 0;
-                            const isVoted = post.userVote === index;
-                            return (
-                              <div key={`${post._id}-${option.text}`} className={`w-full rounded-lg border p-3 ${isVoted ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`}>
-                                <div className="flex items-center justify-between gap-3 text-sm font-medium text-slate-800">
-                                  <span>{option.text}</span>
-                                  <div className="flex items-center gap-2">
-                                    <span>{percent}%</span>
-                                    <Button
-                                      type="button"
-                                      variant={isVoted ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => handleVote(post, index)}
-                                      className={`h-7 px-2 text-xs ${isVoted ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                                    >
-                                      {isVoted ? 'Voted' : 'Vote'}
-                                    </Button>
+                        ) : (
+                          <div className="mt-5 space-y-4 pl-2">
+                            <div className="space-y-2">{renderPostContent(post.content)}</div>
+                            
+                            {post.mediaUrl && (
+                              <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center max-h-[500px]">
+                                {post.mediaType?.startsWith('video') ? (
+                                  <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})}>
+                                    <video src={getMediaUrl(post.mediaUrl)} className="w-full h-auto object-contain max-h-[500px]" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                      <div className="bg-white/80 p-4 rounded-full shadow-lg backdrop-blur-sm"><Video className="w-8 h-8 text-slate-800" /></div>
+                                    </div>
+                                  </div>
+                                ) : post.mediaType?.includes('pdf') ? (
+                                  <div className="flex flex-col h-[500px] bg-slate-100 p-2">
+                                    <iframe src={getMediaUrl(post.mediaUrl)} className="w-full flex-1 rounded-t-lg" title="PDF Document" />
+                                    <div className="w-full p-4 bg-white flex justify-center rounded-b-lg border border-slate-200 mt-2">
+                                      <a href={getMediaUrl(post.mediaUrl)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-all">
+                                        Open PDF in New Tab
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <img src={getMediaUrl(post.mediaUrl)} alt="Post media" className="w-full h-auto object-contain max-h-[500px] cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewMedia({url: post.mediaUrl!, type: post.mediaType})} />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {!isEditing && post.tags.length > 0 && (
+                          <div className="mt-6 flex flex-wrap gap-2 pl-2">
+                            {post.tags.map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  if (searchTerm === tag) {
+                                    setSearchTerm('');
+                                  } else {
+                                    setSearchTerm(tag);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }
+                                }}
+                                className={cn(
+                                  "rounded-lg px-3 py-1.5 text-[12px] font-bold transition",
+                                  searchTerm === tag
+                                    ? "bg-slate-900 text-white shadow-sm"
+                                    : "bg-slate-50 border border-slate-100 text-slate-500 hover:bg-blue-50 hover:text-slate-900 hover:border-slate-300"
+                                )}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {!isEditing && post.type === 'poll' && (
+                          <div className="mt-6 space-y-3 rounded-[20px] border border-slate-100 bg-slate-50/50 p-5">
+                            <div className="flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">
+                              <span className="flex items-center gap-2"><Vote className="h-4 w-4 text-slate-600" /> Community Poll</span>
+                              <span className="bg-white px-2 py-1 rounded-md border border-slate-200">{votes} votes</span>
+                            </div>
+                            {post.pollOptions.map((option, index) => {
+                              const percent = votes ? Math.round((option.votes / votes) * 100) : 0;
+                              const isVoted = post.userVote === index;
+                              return (
+                                <div key={`${post._id}-poll-${index}`} className={`relative w-full rounded-full border overflow-hidden p-3 transition-colors ${isVoted ? 'border-slate-300 bg-slate-50/30 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                                  {/* Progress bar background */}
+                                  <div className="absolute top-0 left-0 h-full bg-slate-200/50 transition-all duration-500 ease-out" style={{ width: `${percent}%` }} />
+                                  
+                                  <div className="relative flex items-center justify-between gap-3 text-[14px] font-bold text-slate-800 z-10">
+                                    <span>{option.text}</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-slate-500 font-bold">{percent}%</span>
+                                      <Button
+                                        type="button"
+                                        variant={isVoted ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleVote(post, index)}
+                                        className={cn("rounded-full h-8 px-5 border-slate-200 text-[12px] font-bold transition-all", isVoted ? "bg-slate-900 hover:bg-slate-800 text-white shadow-sm shadow-slate-200" : "text-slate-600 hover:bg-slate-50")}
+                                      >
+                                        {isVoted ? 'Voted' : 'Vote'}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </article>
-                  );
-                })
+                              );
+                            })}
+                          </div>
+                        )}
+                        </article>
+                    );
+                  })}
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           </section>
 
-          <aside className="order-1 xl:order-2 xl:sticky xl:top-28 xl:self-start">
-            <Card className="border-slate-200 bg-white shadow-sm">
-              <CardContent className="p-3 md:p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700">
-                      <MessageSquarePlus className="h-4 w-4" /> Warden Post
-                    </p>
-                    <h2 className="mt-1 text-base font-bold text-slate-950">Create post</h2>
-                  </div>
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${avatarColorFor('warden-community')}`}>
-                    W
-                  </div>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  <div className="grid grid-cols-2 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium">
-                    <button
-                      type="button"
-                      onClick={() => setDraftType('text')}
-                      className={`rounded-md px-3 py-2 transition ${draftType === 'text' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-950'}`}
-                    >
-                      Text
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDraftType('poll')}
-                      className={`rounded-md px-3 py-2 transition ${draftType === 'poll' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-950'}`}
-                    >
-                      Poll
-                    </button>
-                  </div>
-
-                  <Textarea
-                    value={content}
-                    onChange={(event) => setContent(event.target.value)}
-                    placeholder="Use #Heading# on its own line for bold heading text."
-                    className="min-h-24 resize-none rounded-lg border-slate-200 bg-slate-50 text-sm leading-6 md:min-h-28"
-                  />
+          {/* Create Post Sidebar */}
+          <aside className="order-1 lg:order-2 lg:sticky lg:top-[104px] lg:self-start lg:max-h-[calc(100vh-128px)] flex flex-col min-h-0">
+            <Card className="rounded-[28px] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                 <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-900 mb-1">
+                   <MessageSquarePlus className="h-4 w-4" /> Share with Community
+                 </p>
+                 <h2 className="text-lg font-bold text-slate-900">Create Post</h2>
+              </div>
+              <CardContent className="p-0 flex flex-col flex-1 min-h-0">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                  <div className="space-y-4 p-6 flex-1 overflow-y-auto scrollable-hide min-h-0">
+                  <Tabs value={draftType} onValueChange={(v) => setDraftType(v as PostType)} className="w-full" suppressHydrationWarning>
+                    <TabsList className="bg-slate-100 border border-slate-200/60 rounded-full h-[42px] p-1 flex items-center w-full max-w-full overflow-x-auto hide-scrollbar">
+                      <TabsTrigger value="text" className="flex-1 relative rounded-full h-full text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                        {draftType === 'text' && (
+                          <motion.div
+                            layoutId="community-draft-type"
+                            className="absolute inset-0 bg-white rounded-full shadow-sm"
+                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                        <span className="relative z-10">Text Post</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="poll" className="flex-1 relative rounded-full h-full text-[13px] font-bold text-slate-500 data-[state=active]:text-slate-900 data-[state=inactive]:hover:text-slate-700 data-[state=inactive]:hover:bg-slate-200/50 transition-colors duration-300">
+                        {draftType === 'poll' && (
+                          <motion.div
+                            layoutId="community-draft-type"
+                            className="absolute inset-0 bg-white rounded-full shadow-sm"
+                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                        <span className="relative z-10">Poll</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
 
                   <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Textarea
+                      value={content}
+                      onChange={(event) => setContent(event.target.value)}
+                      placeholder="Write your post here... Use #Heading# for bold titles."
+                      className="min-h-[120px] resize-y rounded-[16px] border-gray-200 bg-white text-[14px] font-medium leading-relaxed p-4 pb-12 focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
+                    />
+                    <div className="absolute bottom-2 right-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                           if (fileInputRef.current) {
+                             fileInputRef.current.accept = 'image/*,video/*,.pdf';
+                             fileInputRef.current.click();
+                           }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 shadow-sm rounded-lg hover:bg-slate-50 text-[12px] font-bold text-slate-600 transition-colors"
+                      >
+                        <ImagePlus className="w-4 h-4" /> Attach Media
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*,video/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setMediaFile(file);
+                        setMediaPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+
+                  {mediaPreview && (
+                    <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50/50 flex items-center justify-center min-h-[100px]">
+                      {mediaFile?.type.startsWith('video/') ? (
+                        <video src={mediaPreview} controls className="w-full h-auto object-contain max-h-60" />
+                      ) : mediaFile?.type === 'application/pdf' ? (
+                        <iframe src={mediaPreview} className="w-full h-[350px] rounded-lg" title="PDF Preview" />
+                      ) : (
+                        <img src={mediaPreview} alt="Preview" className="w-full h-auto object-contain max-h-60" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPreview(null);
+                          setMediaFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-sm transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                       value={tagInput}
                       onChange={(event) => setTagInput(event.target.value)}
-                      placeholder="Tags separated by commas"
-                      className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-10 text-sm"
+                      placeholder="Add tags separated by commas"
+                      className="h-[42px] rounded-[16px] border-gray-200 bg-white pl-11 text-[14px] font-medium focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
                     />
                   </div>
 
                   {draftType === 'poll' && (
-                    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
                       {pollInputs.map((option, index) => (
                         <div key={`draft-${index}`} className="flex items-center gap-2">
                           <Input
@@ -648,7 +1021,7 @@ export default function CommunityPage() {
                               )
                             }
                             placeholder={`Option ${index + 1}`}
-                            className="h-9 rounded-lg bg-white text-sm"
+                            className="h-[42px] rounded-[16px] border-gray-200 bg-white text-[14px] font-medium focus-visible:ring-1 focus-visible:ring-black focus-visible:border-black transition-colors hover:border-gray-300"
                           />
                           {pollInputs.length > 2 && (
                             <Button
@@ -656,7 +1029,7 @@ export default function CommunityPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => setPollInputs((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                              className="h-9 w-9 shrink-0 text-slate-500 hover:text-red-600"
+                              className="h-10 w-10 shrink-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -668,18 +1041,21 @@ export default function CommunityPage() {
                           type="button"
                           variant="outline"
                           onClick={() => setPollInputs((current) => [...current, ''])}
-                          className="h-9 w-full border-dashed text-xs"
+                          className="h-10 w-full bg-white hover:bg-slate-50 border-dashed border-slate-300 hover:border-slate-400 text-slate-500 hover:text-slate-700 font-bold rounded-xl text-[12px] transition-all"
                         >
-                          Add option
+                          + Add poll option
                         </Button>
                       )}
                     </div>
                   )}
-
-                  <Button type="submit" className="h-10 w-full gap-2 bg-blue-700 text-white hover:bg-blue-800">
-                    <Send className="h-4 w-4" />
-                    Publish as warden
-                  </Button>
+                  </div>
+                  
+                  <div className="p-6 pt-4 bg-white border-t border-slate-100 shrink-0 relative z-10">
+                    <Button type="submit" className="h-12 w-full rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-sm shadow-slate-200 transition-all">
+                      <Send className="h-4 w-4 mr-2" />
+                      Publish Post
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
@@ -688,42 +1064,46 @@ export default function CommunityPage() {
       </div>
 
       <AlertDialog open={isPublishConfirmOpen} onOpenChange={setIsPublishConfirmOpen}>
-        <AlertDialogContent className="rounded-3xl border-none p-8">
+        <AlertDialogContent className="rounded-[32px] border-0 p-8 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Post to community?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-500">
-              This will publish the post to the hostel community feed.
+            <AlertDialogTitle className="text-xl md:text-2xl font-bold text-slate-900">Publish Post?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 text-[15px] font-medium leading-relaxed mt-2">
+              This will publish your post to the main community feed for all students and teachers to see.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="rounded-xl border-none bg-slate-100 text-slate-600 font-bold">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="rounded-full border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-9 px-5 text-[13px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmPublish}
               disabled={isSubmitting}
-              className="rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold px-8"
+              className="rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-9 px-6 text-[13px] shadow-sm shadow-slate-200"
             >
-              {isSubmitting ? 'Posting...' : 'Post now'}
+              {isSubmitting ? 'Posting...' : 'Publish Now'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="rounded-3xl border-none p-8">
+        <AlertDialogContent className="rounded-[32px] border-0 p-8 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Delete this post?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-500">
-              This will remove the post from the community feed permanently.
+            <AlertDialogTitle className="text-xl md:text-2xl font-bold text-slate-900">Delete Post?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 text-[15px] font-medium leading-relaxed mt-2">
+              Are you sure you want to permanently delete this post? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="rounded-xl border-none bg-slate-100 text-slate-600 font-bold">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold px-8">
-              Delete
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="rounded-full border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 h-9 px-5 text-[13px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={isDeleting}
+              className="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-9 px-6 text-[13px] shadow-sm shadow-rose-200"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Post'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   );
 }

@@ -31,9 +31,9 @@
 
 html { font-size: 16px; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
+
+.student-shell {
   font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.6;
@@ -43,24 +43,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
-p, label, input, button, textarea, small {
+.student-shell p, .student-shell label, .student-shell input, .student-shell button, .student-shell textarea, .student-shell small {
   font-size: 1rem;
   line-height: 1.5;
 }
 
-h1, h2, h3, h4, h5, h6 {
+.student-shell h1, .student-shell h2, .student-shell h3, .student-shell h4, .student-shell h5, .student-shell h6 {
   font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
   letter-spacing: 0.01em;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Nunito', sans-serif;
   font-weight: 800;
 }
 
-button { font-family: 'Nunito', sans-serif; }
+.student-shell button { font-family: 'Nunito', sans-serif; }
 
 ::-webkit-scrollbar { width: 0.3rem; }
 ::-webkit-scrollbar-track { background: transparent; }
