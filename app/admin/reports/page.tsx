@@ -91,7 +91,7 @@ export default function ReportsPage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="w-[120px] h-11 bg-white border-slate-200 rounded-xl shadow-sm">
+            <SelectTrigger className="w-[120px] h-11 bg-white border-slate-200 rounded-full shadow-sm px-4">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
@@ -99,7 +99,7 @@ export default function ReportsPage() {
             </SelectContent>
           </Select>
           <Select value={home} onValueChange={setHome}>
-            <SelectTrigger className="w-full sm:w-[150px] h-11 bg-white border-slate-200 rounded-xl shadow-sm">
+            <SelectTrigger className="w-full sm:w-[150px] h-11 bg-white border-slate-200 rounded-full shadow-sm px-4">
               <SelectValue placeholder="All Homes" />
             </SelectTrigger>
             <SelectContent>
@@ -108,7 +108,7 @@ export default function ReportsPage() {
             </SelectContent>
           </Select>
           {data && (
-            <Button onClick={() => exportCSV(data)} className="h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-sm font-semibold">
+            <Button onClick={() => exportCSV(data)} className="h-11 rounded-full px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm font-semibold">
               <Download className="w-4 h-4 mr-2" /> Export CSV
             </Button>
           )}
@@ -152,7 +152,7 @@ export default function ReportsPage() {
           {/* Charts Row 1 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Monthly Trend (Full Width on Mobile, 2/3 on Desktop) */}
+            {/* Monthly Trend (2/3 on Desktop) */}
             <Card className="lg:col-span-2 rounded-[32px] border-none shadow-sm bg-white overflow-hidden relative group">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
                 <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -182,7 +182,43 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            {/* Expenses By Category (1/3 on Desktop) */}
+            {/* Application Statuses (1/3 on Desktop) */}
+            <Card className="lg:col-span-1 rounded-[32px] border-none shadow-sm bg-white overflow-hidden relative group">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
+                <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <BarChart2 className="w-5 h-5 text-purple-500" /> Requests Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {data.byStatus.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-slate-400">No data.</div>
+                ) : (
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart data={data.byStatus} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} width={80} />
+                        <Tooltip 
+                          cursor={{ fill: "#f8fafc" }}
+                          contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                        />
+                        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 6, 6, 0]} barSize={32}>
+                          {data.byStatus.map((_, i) => <Cell key={i} fill={COLORS[(i+2) % COLORS.length]} />)}
+                        </Bar>
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Charts Row 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Expenses By Category (1/2) */}
             <Card className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden relative group">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
                 <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -196,7 +232,7 @@ export default function ReportsPage() {
                   <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={data.byCategory} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={60} outerRadius={85} paddingAngle={2}>
+                        <Pie data={data.byCategory} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={70} outerRadius={95} paddingAngle={2}>
                           {data.byCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                         </Pie>
                         <Tooltip 
@@ -211,12 +247,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-          </div>
-
-          {/* Charts Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Expenses By Home */}
+            {/* Expenses By Home (1/2) */}
             <Card className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden relative group">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
                 <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -225,50 +256,20 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent className="p-6">
                 {data.byHome.length === 0 ? (
-                  <div className="h-[250px] flex items-center justify-center text-slate-400">No data.</div>
+                  <div className="h-[300px] flex items-center justify-center text-slate-400">No data.</div>
                 ) : (
-                  <div className="h-[250px] w-full">
+                  <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={data.byHome} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={0} outerRadius={80} label={({ name }) => name} labelLine={false}>
+                        <Pie data={data.byHome} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={70} outerRadius={95} paddingAngle={2}>
                           {data.byHome.map((_, i) => <Cell key={i} fill={COLORS[(i+3) % COLORS.length]} />)}
                         </Pie>
                         <Tooltip 
                           contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                           formatter={(v: any) => `₹${v.toLocaleString("en-IN")}`} 
                         />
+                        <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: "12px", color: "#64748b", paddingTop: "20px" }} />
                       </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Application Statuses (Approvals/Rejections) */}
-            <Card className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden relative group">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
-                <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <BarChart2 className="w-5 h-5 text-purple-500" /> Document & Request Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {data.byStatus.length === 0 ? (
-                  <div className="h-[250px] flex items-center justify-center text-slate-400">No data.</div>
-                ) : (
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={data.byStatus} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} width={80} />
-                        <Tooltip 
-                          cursor={{ fill: "#f8fafc" }}
-                          contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                        />
-                        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 6, 6, 0]} barSize={24}>
-                          {data.byStatus.map((_, i) => <Cell key={i} fill={COLORS[(i+2) % COLORS.length]} />)}
-                        </Bar>
-                      </RechartsBarChart>
                     </ResponsiveContainer>
                   </div>
                 )}

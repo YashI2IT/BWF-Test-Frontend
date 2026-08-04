@@ -102,18 +102,19 @@ export default function AuditLogsPage() {
       </motion.header>
 
       {/* Stats & Filters */}
-      <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
-        <div className="flex w-full lg:w-auto gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white p-1.5 pl-4 pr-1.5 rounded-full border border-slate-200/60 shadow-sm">
+        <div className="flex w-full lg:w-auto items-center">
           <div className="relative flex-1 lg:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 
-              className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
+              className="pl-8 h-11 bg-transparent border-none shadow-none focus-visible:ring-0 w-full rounded-full"
               placeholder="Search by Admin ID..."
               value={searchAdmin} onChange={e => { setSearchAdmin(e.target.value); setPage(1); }}
             />
           </div>
+          <div className="h-6 w-px bg-slate-200 mx-2 hidden lg:block"></div>
           <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-            <SelectTrigger className="w-[180px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+            <SelectTrigger className="w-[160px] h-11 bg-transparent border-none shadow-none focus:ring-0 capitalize px-2">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -123,7 +124,7 @@ export default function AuditLogsPage() {
           </Select>
         </div>
         
-        <div className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 whitespace-nowrap">
+        <div className="px-5 py-2.5 bg-slate-50 rounded-full border border-slate-200/80 text-sm font-medium text-slate-600 whitespace-nowrap">
           <span className="text-slate-900 font-bold">{total}</span> total entries
         </div>
       </div>
@@ -167,7 +168,7 @@ export default function AuditLogsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant="outline" className={`${getActionColor(l.action)} border shadow-none font-bold uppercase tracking-wider text-[10px]`}>
+                        <Badge variant="outline" className={`${getActionColor(l.action)} rounded-full border shadow-none font-bold uppercase tracking-wider text-[10px]`}>
                           {getActionIcon(l.action)} {formatAction(l.action)}
                         </Badge>
                       </td>
