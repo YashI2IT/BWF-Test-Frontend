@@ -112,7 +112,7 @@ export default function StudentsPage() {
             Full student registry with welfare tracking, academic records, and status management.
           </p>
         </div>
-        <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
+        <Button onClick={openAdd} className="bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm">
           <Plus className="w-4 h-4 mr-2" /> Add Student
         </Button>
       </motion.header>
@@ -181,17 +181,17 @@ export default function StudentsPage() {
       </motion.div>
 
       {/* Search & Status Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="flex flex-col md:flex-row gap-3 bg-white p-2 rounded-full border border-slate-200/60 shadow-sm mb-6 w-fit">
+        <div className="relative flex-1 md:w-[320px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input 
-            className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
+            className="pl-11 h-11 bg-slate-50 border-slate-200 rounded-full w-full"
             placeholder="Search by name or ID..."
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full md:w-[180px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[180px] h-11 bg-slate-50 border-slate-200 rounded-full capitalize shadow-none">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -289,12 +289,12 @@ export default function StudentsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Name *</label>
-                    <Input value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="Jane Doe" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="Jane Doe" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Home *</label>
                     <Select value={form.home} onValueChange={v => setForm({...form, home:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
@@ -305,11 +305,11 @@ export default function StudentsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Class/Grade</label>
-                    <Input value={form.className} onChange={e => setForm({...form, className:e.target.value})} placeholder="e.g., 10th Grade" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.className} onChange={e => setForm({...form, className:e.target.value})} placeholder="e.g., 10th Grade" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Background</label>
-                    <Input value={form.background} onChange={e => setForm({...form, background:e.target.value})} placeholder="Orphan, Single Parent, etc." className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.background} onChange={e => setForm({...form, background:e.target.value})} placeholder="Orphan, Single Parent, etc." className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                 </div>
 
@@ -325,8 +325,8 @@ export default function StudentsPage() {
                 )}
                 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={save} disabled={saving} className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20">
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={save} disabled={saving} className="rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     {saving ? "Saving..." : editing ? "Update Student" : "Register Student"}
                   </Button>
                 </div>

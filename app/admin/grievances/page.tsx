@@ -114,11 +114,11 @@ export default function GrievancesPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => { setForm(f => ({...f, type:"help", priority:"medium"})); setShowAdd(true); }} variant="outline" className="h-11 rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold shadow-sm">
-            <LifeBuoy className="w-4 h-4 mr-2" /> Log Help Request
+          <Button onClick={() => { setForm(f => ({...f, type:"help", priority:"medium"})); setShowAdd(true); }} variant="outline" className="h-11 rounded-full px-6 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold shadow-sm">
+            <LifeBuoy className="w-4 h-4 mr-2 stroke-[1.5]" /> Log Help Request
           </Button>
-          <Button onClick={() => { setForm(f => ({...f, type:"sos", priority:"critical"})); setShowAdd(true); }} className="h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/20 font-bold animate-pulse">
-            <AlertTriangle className="w-4 h-4 mr-2" /> Trigger SOS
+          <Button onClick={() => { setForm(f => ({...f, type:"sos", priority:"critical"})); setShowAdd(true); }} className="h-11 rounded-full px-6 bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/20 font-bold animate-pulse">
+            <AlertTriangle className="w-4 h-4 mr-2 stroke-[1.5]" /> Trigger SOS
           </Button>
         </div>
       </motion.header>
@@ -144,8 +144,8 @@ export default function GrievancesPage() {
                     <p className="text-sm font-medium text-slate-500">{k.label}</p>
                     <p className={`text-3xl font-bold mt-2 ${k.warn ? "text-red-600" : "text-slate-900"}`}>{k.value}</p>
                   </div>
-                  <div className={`p-3 rounded-2xl ${k.bg} ${k.color}`}>
-                    <k.icon className="w-5 h-5" />
+                  <div className={`p-4 rounded-full ${k.bg} ${k.color}`}>
+                    <k.icon className="w-6 h-6 stroke-[1.5]" />
                   </div>
                 </div>
               </CardContent>
@@ -155,17 +155,17 @@ export default function GrievancesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-3 bg-white p-2.5 rounded-2xl md:rounded-full border border-slate-200/60 shadow-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 stroke-[1.5]" />
           <Input 
-            className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
+            className="pl-10 h-11 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border-transparent focus:border-blue-500 rounded-full w-full transition-colors"
             placeholder="Search grievances..."
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full md:w-[180px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[180px] h-11 px-4 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full capitalize transition-colors">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -174,7 +174,7 @@ export default function GrievancesPage() {
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[150px] h-11 px-4 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full capitalize transition-colors">
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
@@ -300,19 +300,19 @@ export default function GrievancesPage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Subject *</label>
-                  <Input value={form.subject} onChange={e => setForm({...form, subject:e.target.value})} placeholder="Brief title..." className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                  <Input value={form.subject} onChange={e => setForm({...form, subject:e.target.value})} placeholder="Brief title..." className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full" />
                 </div>
                 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Message *</label>
-                  <Textarea rows={4} value={form.message} onChange={e => setForm({...form, message:e.target.value})} placeholder="Detailed description..." className="bg-slate-50 border-slate-200 rounded-2xl resize-none" />
+                  <Textarea rows={4} value={form.message} onChange={e => setForm({...form, message:e.target.value})} placeholder="Detailed description..." className="bg-slate-50 border-slate-200 rounded-3xl p-4 resize-none" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Home</label>
                     <Select value={form.home} onValueChange={v => setForm({...form, home:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue/></SelectTrigger>
+                      <SelectTrigger className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full"><SelectValue/></SelectTrigger>
                       <SelectContent>
                         {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
@@ -321,7 +321,7 @@ export default function GrievancesPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Priority</label>
                     <Select value={form.priority} onValueChange={v => setForm({...form, priority:v})} disabled={form.type === "sos"}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl capitalize"><SelectValue/></SelectTrigger>
+                      <SelectTrigger className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full capitalize"><SelectValue/></SelectTrigger>
                       <SelectContent>
                         {["critical", "high", "medium", "low"].map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}
                       </SelectContent>
@@ -330,8 +330,8 @@ export default function GrievancesPage() {
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={submit} disabled={saving} className={`rounded-xl h-11 px-6 text-white shadow-sm ${form.type === "sos" ? "bg-red-600 hover:bg-red-700 shadow-red-600/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"}`}>
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={submit} disabled={saving} className={`rounded-full h-11 px-6 text-white shadow-sm ${form.type === "sos" ? "bg-red-600 hover:bg-red-700 shadow-red-600/20" : "bg-slate-900 hover:bg-slate-800"}`}>
                     {saving ? "Sending..." : "Submit"}
                   </Button>
                 </div>

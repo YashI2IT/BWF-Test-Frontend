@@ -134,7 +134,7 @@ export default function StaffPage() {
             Manage staff roles, permissions, caseload assignments, and certification tracking.
           </p>
         </div>
-        <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
+        <Button onClick={openAdd} className="bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm">
           <Plus className="w-4 h-4 mr-2" /> Add Staff
         </Button>
       </motion.header>
@@ -204,9 +204,9 @@ export default function StaffPage() {
       </motion.div>
 
       {/* Role & Status Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm mb-6">
+      <div className="flex flex-col md:flex-row gap-3 bg-white p-2 rounded-full border border-slate-200/60 shadow-sm mb-6 w-fit">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-[180px] h-11 bg-slate-50 border-slate-200 rounded-full capitalize shadow-none">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -215,7 +215,7 @@ export default function StaffPage() {
           </SelectContent>
         </Select>
         <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-[180px] h-11 bg-slate-50 border-slate-200 rounded-full capitalize shadow-none">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
@@ -328,12 +328,12 @@ export default function StaffPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Name *</label>
-                    <Input value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="John Doe" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="John Doe" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Role *</label>
                     <Select value={form.role} onValueChange={v => setForm({...form, role:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl capitalize"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl capitalize"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ROLES.map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("_"," ")}</SelectItem>)}
                       </SelectContent>
@@ -345,7 +345,7 @@ export default function StaffPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Home Assignment *</label>
                     <Select value={form.house} onValueChange={v => setForm({...form, house:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
@@ -354,9 +354,9 @@ export default function StaffPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Employment Type</label>
                     <Select value={form.type} onValueChange={v => setForm({...form, type:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl capitalize"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl capitalize"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["full-time", "part-time", "contract"].map(t => <SelectItem key={t} value={t} className="capitalize">{t.replace("-"," ")}</SelectItem>)}
+                        {["full-time", "part-time", "volunteer"].map(t => <SelectItem key={t} value={t} className="capitalize">{t.replace("-"," ")}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -365,11 +365,11 @@ export default function StaffPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email</label>
-                    <Input value={form.email} onChange={e => setForm({...form, email:e.target.value})} placeholder="email@example.com" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.email} onChange={e => setForm({...form, email:e.target.value})} placeholder="email@example.com" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone</label>
-                    <Input value={form.phone} onChange={e => setForm({...form, phone:e.target.value})} placeholder="+91..." className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input value={form.phone} onChange={e => setForm({...form, phone:e.target.value})} placeholder="+91..." className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                 </div>
 
@@ -385,8 +385,8 @@ export default function StaffPage() {
                 )}
                 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={save} disabled={saving} className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20">
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={save} disabled={saving} className="rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     {saving ? "Saving..." : editing ? "Update Staff" : "Register Staff"}
                   </Button>
                 </div>

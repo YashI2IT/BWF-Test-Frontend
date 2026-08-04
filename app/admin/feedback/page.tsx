@@ -12,7 +12,7 @@ import { Badge } from "@/app/warden/Template/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/warden/Template/components/ui/select";
 import { Input } from "@/app/warden/Template/components/ui/input";
 import { Textarea } from "@/app/warden/Template/components/ui/textarea";
-import { MessageSquareHeart, Star, User, Building, Clock, CheckCircle2, Search, X, MessageSquareWarning, Filter } from "lucide-react";
+import { MessageSquare, Star, User, Building, Clock, CheckCircle2, Search, X, MessageSquareWarning, Filter } from "lucide-react";
 
 interface Feedback {
   _id: string; submittedBy: string; role: string; home: string;
@@ -33,6 +33,8 @@ const STAR_COLORS = ["", "text-slate-300", "text-red-400 text-fill-red-400", "te
 
 export default function FeedbackPage() {
   const [items, setItems] = useState<Feedback[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -41,7 +43,7 @@ export default function FeedbackPage() {
   const [selected, setSelected] = useState<Feedback | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ submittedBy: "Admin", role: "admin", home: "Jammu", category: "general", message: "", rating: 5, anonymous: false });
+  const [form, setForm] = useState({ submittedBy: "Admin", role: "admin", home: "Jammu", category: "general", message: "", rating: 5, anonymous: false, targetStudent: "none", targetStaff: "none" });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -58,7 +60,11 @@ export default function FeedbackPage() {
       .catch(e => { flash(e.message); setLoading(false); });
   };
 
-  useEffect(() => { load(); }, [filterStatus, filterRole, filterCat]);
+  useEffect(() => { 
+    load(); 
+    adminAPI.getStudents().then(d => setStudents(d as any[])).catch(()=>{});
+    adminAPI.getStaff().then(d => setStaff(d as any[])).catch(()=>{});
+  }, [filterStatus, filterRole, filterCat]);
 
   const markReviewed = async (id: string, status: string) => {
     try {
@@ -71,9 +77,13 @@ export default function FeedbackPage() {
     if (!form.message) return;
     setSaving(true);
     try {
-      await adminAPI.addFeedback(form);
+      let finalMessage = form.message;
+      if (form.targetStudent && form.targetStudent !== "none") finalMessage = `[For Student: ${form.targetStudent}]\n\n` + finalMessage;
+      if (form.targetStaff && form.targetStaff !== "none") finalMessage = `[For Staff: ${form.targetStaff}]\n\n` + finalMessage;
+      
+      await adminAPI.addFeedback({ ...form, message: finalMessage });
       flash("Feedback submitted successfully."); setShowAdd(false); 
-      setForm({ submittedBy: "Admin", role: "admin", home: "Jammu", category: "general", message: "", rating: 5, anonymous: false });
+      setForm({ submittedBy: "Admin", role: "admin", home: "Jammu", category: "general", message: "", rating: 5, anonymous: false, targetStudent: "none", targetStaff: "none" });
       load();
     } catch (e: unknown) { flash((e as Error).message); }
     setSaving(false);
@@ -108,8 +118,8 @@ export default function FeedbackPage() {
             Review feedback from students and staff. Identify areas for improvement.
           </p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
-          <MessageSquareHeart className="w-4 h-4 mr-2" /> Submit Feedback
+        <Button onClick={() => setShowAdd(true)} className="h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm font-semibold">
+          <MessageSquare className="w-4 h-4 mr-2 stroke-[1.5]" /> Submit Feedback
         </Button>
       </motion.header>
 
@@ -122,7 +132,7 @@ export default function FeedbackPage() {
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Total Feedback", value: items.length, icon: MessageSquareHeart, color: "text-blue-600", bg: "bg-blue-50", warn: false },
+          { label: "Total Feedback", value: items.length, icon: MessageSquare, color: "text-blue-600", bg: "bg-blue-50", warn: false },
           { label: "New (Unreviewed)", value: newCount, icon: MessageSquareWarning, color: newCount > 0 ? "text-amber-600" : "text-slate-600", bg: newCount > 0 ? "bg-amber-50 border border-amber-200" : "bg-slate-50", warn: newCount > 0 },
           { label: "Average Rating", value: `${avgRating.toFixed(1)} / 5`, icon: Star, color: "text-emerald-600", bg: "bg-emerald-50", warn: false },
         ].map((k, i) => (
@@ -134,8 +144,8 @@ export default function FeedbackPage() {
                     <p className="text-sm font-medium text-slate-500">{k.label}</p>
                     <p className={`text-3xl font-bold mt-2 ${k.warn ? "text-amber-600" : "text-slate-900"}`}>{k.value}</p>
                   </div>
-                  <div className={`p-3 rounded-2xl ${k.bg} ${k.color}`}>
-                    <k.icon className="w-5 h-5" />
+                  <div className={`p-4 rounded-full ${k.bg} ${k.color}`}>
+                    <k.icon className="w-6 h-6 stroke-[1.5]" />
                   </div>
                 </div>
               </CardContent>
@@ -145,17 +155,17 @@ export default function FeedbackPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-3 bg-white p-2.5 rounded-2xl md:rounded-full border border-slate-200/60 shadow-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 stroke-[1.5]" />
           <Input 
-            className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
+            className="pl-10 h-11 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border-transparent focus:border-blue-500 rounded-full w-full transition-colors"
             placeholder="Search feedback..."
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full px-4 capitalize transition-colors">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -164,7 +174,7 @@ export default function FeedbackPage() {
           </SelectContent>
         </Select>
         <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full px-4 capitalize transition-colors">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
@@ -173,7 +183,7 @@ export default function FeedbackPage() {
           </SelectContent>
         </Select>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full px-4 capitalize transition-colors">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +198,7 @@ export default function FeedbackPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.length === 0 ? (
             <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-slate-200/60">
-              <Filter className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <Filter className="w-12 h-12 text-slate-300 mx-auto mb-4 stroke-[1.5]" />
               <p className="text-slate-500 font-medium">No feedback found matching criteria.</p>
             </div>
           ) : (
@@ -234,7 +244,7 @@ export default function FeedbackPage() {
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                    <MessageSquareHeart className="w-5 h-5" />
+                    <MessageSquare className="w-5 h-5 stroke-[1.5]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-900 tracking-tight">Feedback Review</h2>
@@ -309,7 +319,7 @@ export default function FeedbackPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Category</label>
                     <Select value={form.category} onValueChange={v => setForm({...form, category:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl capitalize"><SelectValue/></SelectTrigger>
+                      <SelectTrigger className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full capitalize"><SelectValue/></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
                       </SelectContent>
@@ -317,18 +327,41 @@ export default function FeedbackPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rating (1-5)</label>
-                    <Input type="number" min="1" max="5" value={form.rating} onChange={e => setForm({...form, rating:parseInt(e.target.value)||5})} className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input type="number" min="1" max="5" value={form.rating} onChange={e => setForm({...form, rating:parseInt(e.target.value)||5})} className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Student</label>
+                    <Select value={form.targetStudent} onValueChange={v => setForm({...form, targetStudent:v})}>
+                      <SelectTrigger className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full"><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {students.map(s => <SelectItem key={s._id} value={s.name}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Staff</label>
+                    <Select value={form.targetStaff} onValueChange={v => setForm({...form, targetStaff:v})}>
+                      <SelectTrigger className="h-11 px-4 bg-slate-50 border-slate-200 rounded-full"><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {staff.map(s => <SelectItem key={s._id} value={s.name}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Message *</label>
-                  <Textarea rows={4} value={form.message} onChange={e => setForm({...form, message:e.target.value})} placeholder="Detailed feedback..." className="bg-slate-50 border-slate-200 rounded-2xl resize-none" />
+                  <Textarea rows={4} value={form.message} onChange={e => setForm({...form, message:e.target.value})} placeholder="Detailed feedback..." className="bg-slate-50 border-slate-200 rounded-3xl p-4 resize-none" />
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={submit} disabled={saving} className={`rounded-xl h-11 px-6 text-white shadow-sm bg-blue-600 hover:bg-blue-700 shadow-blue-600/20`}>
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={submit} disabled={saving} className={`rounded-full h-11 px-6 text-white shadow-sm bg-slate-900 hover:bg-slate-800`}>
                     {saving ? "Sending..." : "Submit Feedback"}
                   </Button>
                 </div>

@@ -152,7 +152,7 @@ const itemVariants: Variants = {
 const TrackerTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
-      <div className="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 min-w-[100px]">
+      <div className="bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl border border-slate-700 min-w-[100px]">
         <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
         <p className="text-[18px] font-extrabold">₹{payload[0].value.toLocaleString('en-IN')} <span className="text-[12px] font-semibold text-slate-400">spent</span></p>
       </div>
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
                       Last 6 Months <ChevronDown className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[150px] rounded-2xl p-2">
+                  <DropdownMenuContent align="end" className="w-[150px] rounded-2xl p-2 shadow-lg border border-slate-100">
                     <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100">Last 6 Months</DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer font-medium text-[13px] py-2 rounded-xl focus:bg-slate-100">This Year</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -455,9 +455,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Decorative progress bars at bottom */}
-              <div className="flex gap-1 h-8 items-end w-full absolute bottom-6 left-6 right-6 opacity-40">
-                {Array.from({length: 30}).map((_, i) => (
-                  <div key={i} className="flex-1 bg-slate-200 rounded-t-sm" style={{ height: `${20 + [40, 75, 30, 90, 55, 80, 25, 60, 85, 45, 95, 35, 65, 50, 20][i % 15]}%` }} />
+              <div className="flex gap-[6px] h-10 items-end absolute bottom-4 left-6 right-6 opacity-60">
+                {Array.from({length: 24}).map((_, i) => (
+                  <div key={i} className="flex-1 bg-slate-100 rounded-full" style={{ height: `${20 + [40, 75, 30, 90, 55, 80, 25, 60, 85, 45, 95, 35, 65, 50, 20][i % 15]}%` }} />
                 ))}
               </div>
             </motion.div>

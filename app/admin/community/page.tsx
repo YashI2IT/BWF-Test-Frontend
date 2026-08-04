@@ -144,7 +144,10 @@ export default function CommunityPage() {
     adminAPI.getLivePosts(p).then(d => { setLive(d as LivePost[]); setLoading(false); }).catch(e => { flash(e.message, true); setLoading(false); });
   };
 
-  useEffect(() => { setLoading(true); if (tab === "pending") loadPending(); else loadLive(); }, [tab, filterHome, filterStatus]);
+  useEffect(() => { 
+    // We intentionally don't set loading(true) here so it doesn't flash the skeleton on every tab change
+    if (tab === "pending") loadPending(); else loadLive(); 
+  }, [tab, filterHome, filterStatus]);
 
   const reviewPost = async (id: string, status: "approved"|"rejected") => {
     let rejectionReason = "";
@@ -207,7 +210,7 @@ export default function CommunityPage() {
         </div>
         
         {tab === "live" && (
-          <Button onClick={() => setShowCompose(true)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
+          <Button onClick={() => setShowCompose(true)} className="bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm">
             <MessageSquarePlus className="w-4 h-4 mr-2" /> Admin Post
           </Button>
         )}
@@ -225,21 +228,42 @@ export default function CommunityPage() {
       )}
 
       {/* Modern Tab Bar & Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-2 rounded-2xl border border-slate-200/60 shadow-sm">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "pending"|"live")} className="w-full md:w-auto">
-          <TabsList className="bg-slate-100/80 p-1 rounded-xl">
-            <TabsTrigger value="pending" className="rounded-lg px-4 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">
-              Pending Review {pendingCount > 0 && <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-100">{pendingCount}</Badge>}
-            </TabsTrigger>
-            <TabsTrigger value="live" className="rounded-lg px-4 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">
-              Live Feed
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-2 rounded-full border border-slate-200/60 shadow-sm">
+        
+        {/* Animated Toggle */}
+        <div className="inline-flex items-center p-1 bg-slate-50 border border-slate-100 rounded-full w-full md:w-auto">
+          {(["pending", "live"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`relative px-5 py-2 rounded-full text-[14px] font-semibold transition-all duration-300 flex items-center ${
+                tab === t
+                  ? "text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
+              }`}
+            >
+              {tab === t && (
+                <motion.div
+                  layoutId="communityTab"
+                  className="absolute inset-0 bg-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/50"
+                  initial={false}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center">
+                {t === "pending" ? "Pending Review" : "Live Feed"}
+                {t === "pending" && pendingCount > 0 && (
+                  <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-100 rounded-full border-none px-2 py-0.5">{pendingCount}</Badge>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
 
         <div className="flex gap-3 w-full md:w-auto">
           <Select value={filterHome} onValueChange={setFilterHome}>
-            <SelectTrigger className="w-full md:w-[150px] bg-slate-50 border-slate-200 rounded-xl">
+            <SelectTrigger className="w-full md:w-[150px] bg-slate-50 border-slate-200 rounded-full shadow-none h-11">
               <SelectValue placeholder="All Homes" />
             </SelectTrigger>
             <SelectContent>
@@ -250,7 +274,7 @@ export default function CommunityPage() {
 
           {tab === "pending" && (
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full md:w-[150px] bg-slate-50 border-slate-200 rounded-xl capitalize">
+              <SelectTrigger className="w-full md:w-[150px] bg-slate-50 border-slate-200 rounded-full shadow-none h-11 capitalize">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -331,13 +355,13 @@ export default function CommunityPage() {
 
                     {post.status === "pending" && (
                       <div className="flex gap-3 pt-2">
-                        <Button onClick={() => reviewPost(post._id, "approved")} className="flex-1 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-none">
+                        <Button onClick={() => reviewPost(post._id, "approved")} className="flex-1 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-none font-semibold transition-all h-11">
                           <Check className="w-4 h-4 mr-2" /> Approve
                         </Button>
-                        <Button onClick={() => reviewPost(post._id, "rejected")} variant="secondary" className="flex-1 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 shadow-none">
+                        <Button onClick={() => reviewPost(post._id, "rejected")} variant="secondary" className="flex-1 rounded-full bg-red-50 text-red-600 hover:bg-red-100 shadow-none font-semibold transition-all h-11">
                           <X className="w-4 h-4 mr-2" /> Reject
                         </Button>
-                        <Button onClick={() => deleteP(post._id)} variant="ghost" size="icon" className="rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50">
+                        <Button onClick={() => deleteP(post._id)} variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all h-11 w-11">
                           <Trash2 className="w-5 h-5" />
                         </Button>
                       </div>
@@ -432,14 +456,14 @@ export default function CommunityPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Type</label>
                     <Select value={form.type} onValueChange={v => setForm({...form, type:v})}>
-                      <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-xl h-11"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-2xl h-11"><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="text">Text</SelectItem><SelectItem value="poll">Poll</SelectItem></SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Home</label>
                     <Select value={form.hostelName} onValueChange={v => setForm({...form, hostelName:v})}>
-                      <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-xl h-11"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-2xl h-11"><SelectValue /></SelectTrigger>
                       <SelectContent>{HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -452,12 +476,12 @@ export default function CommunityPage() {
                 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tags</label>
-                  <Input value={form.tags} onChange={(e: any) => setForm({...form, tags:e.target.value})} placeholder="sports, event, announcement" className="w-full rounded-xl border-slate-200 bg-slate-50 h-11" />
+                  <Input value={form.tags} onChange={(e: any) => setForm({...form, tags:e.target.value})} placeholder="sports, event, announcement" className="w-full rounded-2xl border-slate-200 bg-slate-50 h-11" />
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button onClick={() => setShowCompose(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={compose} disabled={saving} className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20">
+                  <Button onClick={() => setShowCompose(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={compose} disabled={saving} className="rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     {saving ? "Publishing..." : "Publish to Feed"}
                   </Button>
                 </div>

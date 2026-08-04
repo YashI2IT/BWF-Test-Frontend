@@ -60,7 +60,7 @@ export default function ComplaintsPage() {
     const p: Record<string, string> = {};
     if (filterStatus && filterStatus !== "all") p.status = filterStatus;
     if (filterPriority && filterPriority !== "all") p.priority = filterPriority;
-    if (filterHome && filterHome !== "all") p.home = filterHome;
+    if (filterHome && filterHome !== "all") p.hostelName = filterHome;
     adminAPI.getComplaints(p)
       .then(d => { setItems(d as Complaint[]); setLoading(false); })
       .catch(e => { flash(e.message); setLoading(false); });
@@ -158,17 +158,17 @@ export default function ComplaintsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-3 bg-white p-2.5 rounded-2xl md:rounded-full border border-slate-200/60 shadow-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 stroke-[1.5]" />
           <Input 
-            className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
+            className="pl-10 h-11 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border-transparent focus:border-blue-500 rounded-full w-full transition-colors"
             placeholder="Search by title or reporter..."
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl capitalize">
+          <SelectTrigger className="w-full md:w-[150px] h-11 px-4 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full capitalize transition-colors">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -177,7 +177,7 @@ export default function ComplaintsPage() {
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl">
+          <SelectTrigger className="w-full md:w-[150px] h-11 px-4 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full transition-colors">
             <SelectValue placeholder="All Priority" />
           </SelectTrigger>
           <SelectContent>
@@ -186,7 +186,7 @@ export default function ComplaintsPage() {
           </SelectContent>
         </Select>
         <Select value={filterHome} onValueChange={setFilterHome}>
-          <SelectTrigger className="w-full md:w-[150px] h-11 bg-slate-50 border-slate-200 rounded-xl">
+          <SelectTrigger className="w-full md:w-[150px] h-11 px-4 bg-slate-50/50 hover:bg-slate-50 border-transparent rounded-full transition-colors">
             <SelectValue placeholder="All Homes" />
           </SelectTrigger>
           <SelectContent>
@@ -233,11 +233,11 @@ export default function ComplaintsPage() {
                 <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex justify-end gap-2">
                   {c.status === "OPEN" ? (
                     <>
-                      <Button size="sm" variant="outline" className="h-9 font-semibold text-orange-600 border-orange-200 hover:bg-orange-50 w-full" onClick={() => { setSelected(c); setActionType("escalate"); }}>Escalate</Button>
-                      <Button size="sm" className="h-9 font-semibold bg-blue-600 hover:bg-blue-700 text-white w-full" onClick={() => { setSelected(c); setActionType("resolve"); }}>Resolve</Button>
+                      <Button size="sm" className="h-9 font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 rounded-full shadow-sm" onClick={() => { setSelected(c); setActionType("escalate"); }}>Escalate</Button>
+                      <Button size="sm" className="h-9 font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 rounded-full shadow-sm" onClick={() => { setSelected(c); setActionType("resolve"); }}>Resolve</Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="ghost" className="h-8 text-slate-500 hover:bg-slate-200 w-full" onClick={() => del(c._id)}>Delete Record</Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-slate-500 hover:bg-slate-200 w-full rounded-full" onClick={() => del(c._id)}>Delete Record</Button>
                   )}
                 </div>
               </Card>
@@ -268,12 +268,12 @@ export default function ComplaintsPage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> Action Notes</label>
-                  <Textarea rows={4} value={actionReason} onChange={e => setActionReason(e.target.value)} placeholder={actionType === "resolve" ? "How was this resolved?..." : "Why is this being escalated?..."} className="bg-slate-50 border-slate-200 rounded-2xl resize-none focus-visible:ring-1 focus-visible:ring-blue-500" />
+                  <Textarea rows={4} value={actionReason} onChange={e => setActionReason(e.target.value)} placeholder={actionType === "resolve" ? "How was this resolved?..." : "Why is this being escalated?..."} className="bg-slate-50 border-slate-200 rounded-3xl p-4 resize-none focus-visible:ring-1 focus-visible:ring-slate-400" />
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <Button onClick={() => { setSelected(null); setActionType(null); }} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={act} disabled={saving} className={`rounded-xl h-11 px-6 text-white shadow-sm ${actionType === "resolve" ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20" : "bg-orange-600 hover:bg-orange-700 shadow-orange-600/20"}`}>
+                  <Button onClick={() => { setSelected(null); setActionType(null); }} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={act} disabled={saving} className="rounded-full h-11 px-6 text-white shadow-sm bg-slate-900 hover:bg-slate-800">
                     {saving ? "Processing..." : `Confirm ${actionType}`}
                   </Button>
                 </div>

@@ -154,50 +154,59 @@ export default function FinancePage() {
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
-          <TabsList className="bg-slate-100/80 p-1 rounded-xl w-full sm:w-auto h-auto">
-            <TabsTrigger value="expenses" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-              <Wallet className="w-4 h-4 mr-2" /> Expenses
+          <TabsList className="bg-white border border-slate-200/60 shadow-sm p-1 rounded-full w-full sm:w-auto h-auto relative">
+            <TabsTrigger value="expenses" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+              {tab === "expenses" && (
+                <motion.div layoutId="finance-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center"><Wallet className="w-4 h-4 mr-2" /> Expenses</span>
             </TabsTrigger>
-            <TabsTrigger value="kpis" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-              <BarChart3 className="w-4 h-4 mr-2" /> KPI Dashboard
+            <TabsTrigger value="kpis" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+              {tab === "kpis" && (
+                <motion.div layoutId="finance-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center"><BarChart3 className="w-4 h-4 mr-2" /> KPI Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="homes" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-              <Building className="w-4 h-4 mr-2" /> Home Summary
+            <TabsTrigger value="homes" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+              {tab === "homes" && (
+                <motion.div layoutId="finance-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center"><Building className="w-4 h-4 mr-2" /> Home Summary</span>
             </TabsTrigger>
           </TabsList>
           
           {tab === "expenses" && (
-            <Button onClick={() => setShowAdd(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
+            <Button onClick={() => setShowAdd(true)} className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm">
               <Plus className="w-4 h-4 mr-2" /> Add Expense
             </Button>
           )}
         </div>
 
         <TabsContent value="expenses" className="space-y-6 mt-0">
-          <div className="flex flex-col sm:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3 bg-white p-2.5 rounded-full border border-slate-200/60 shadow-sm w-full sm:w-max">
             <Select value={filterHome} onValueChange={setFilterHome}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50/50 border-slate-200 rounded-full hover:bg-slate-50 transition-colors">
                 <SelectValue placeholder="All Homes" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="all">All Homes</SelectItem>
                 {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl capitalize">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50/50 border-slate-200 rounded-full hover:bg-slate-50 transition-colors capitalize">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="all">All Status</SelectItem>
                 {["pending","approved","rejected","paid"].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50/50 border-slate-200 rounded-full hover:bg-slate-50 transition-colors">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="all">All Categories</SelectItem>
                 {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
@@ -337,17 +346,17 @@ export default function FinancePage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Title *</label>
-                  <Input value={form.title as string} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Monthly Groceries" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                  <Input value={form.title as string} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Monthly Groceries" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Amount (₹) *</label>
-                    <Input type="number" value={form.amount} onChange={e => setForm({...form, amount: parseFloat(e.target.value) || 0})} placeholder="0.00" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input type="number" value={form.amount} onChange={e => setForm({...form, amount: parseFloat(e.target.value) || 0})} placeholder="0.00" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Date *</label>
-                    <Input type="date" value={form.date as string} onChange={e => setForm({...form, date: e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input type="date" value={form.date as string} onChange={e => setForm({...form, date: e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                 </div>
 
@@ -355,7 +364,7 @@ export default function FinancePage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Category</label>
                     <Select value={form.category as string} onValueChange={v => setForm({...form, category: v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
@@ -364,7 +373,7 @@ export default function FinancePage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Home</label>
                     <Select value={form.home as string} onValueChange={v => setForm({...form, home: v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
@@ -380,8 +389,8 @@ export default function FinancePage() {
                 {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
                 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={addExpense} disabled={saving} className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20">
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={addExpense} disabled={saving} className="rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     {saving ? "Saving..." : "Log Expense"}
                   </Button>
                 </div>

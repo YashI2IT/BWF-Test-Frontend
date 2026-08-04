@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/app/warden/Template/components/ui/input";
 import { Textarea } from "@/app/warden/Template/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/warden/Template/components/ui/tabs";
-import { CalendarDays, MapPin, Clock, X, Plus, CheckCircle2, ShieldAlert, Users, Dumbbell, Laptop, BookOpen, HeartHandshake, PartyPopper, CalendarClock, Building } from "lucide-react";
+import { CalendarDays, MapPin, Clock, X, Plus, CheckCircle2, ShieldAlert, Users, Dumbbell, Laptop, BookOpen, HeartHandshake, PartyPopper, CalendarClock, Building, Search } from "lucide-react";
 
 interface Activity {
   _id: string; title: string; description: string;
@@ -108,19 +108,12 @@ export default function ActivitiesPage() {
 
   const pendingCount = pending.filter(p => p.status === "pending").length;
 
-  if (loading) return <PageSkeleton rows={8} />;
-
   return (
     <div className="flex-1 overflow-auto bg-[#F4F5F7] min-h-screen text-slate-900 font-sans">
-      <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8">
       
       {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -10 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8"
-      >
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
             Admin Activities
@@ -129,12 +122,12 @@ export default function ActivitiesPage() {
             Approve warden requests, schedule upcoming events, and manage campus activities.
           </p>
         </div>
-      </motion.header>
+      </header>
 
       {msg && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-sm font-medium text-emerald-700 shadow-sm flex items-center gap-2">
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-sm font-medium text-emerald-700 shadow-sm flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" /> {msg}
-        </motion.div>
+        </div>
       )}
 
       {/* KPI Stats */}
@@ -145,7 +138,7 @@ export default function ActivitiesPage() {
           { label: "Completed", value: activities.filter(a => a.status === "completed").length, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", warn: false },
           { label: "Cancelled", value: activities.filter(a => a.status === "cancelled").length, icon: ShieldAlert, color: "text-red-600", bg: "bg-red-50", warn: false },
         ].map((k, i) => (
-          <motion.div key={k.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+          <div key={k.label}>
             <Card className={`rounded-[32px] border-none shadow-sm hover:shadow-md transition-shadow duration-300 relative group ${k.warn ? "bg-amber-50/20" : "bg-white"}`}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
@@ -159,62 +152,84 @@ export default function ActivitiesPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
-          <TabsList className="bg-slate-100/80 p-1 rounded-xl w-full sm:w-auto h-auto">
-            <TabsTrigger value="live" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-              <CalendarDays className="w-4 h-4 mr-2" /> Live Activities
+          <TabsList className="bg-white border border-slate-200/60 shadow-sm p-1 rounded-full w-full sm:w-auto h-auto relative">
+            <TabsTrigger value="live" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+              {tab === "live" && (
+                <motion.div layoutId="activities-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center"><CalendarDays className="w-4 h-4 mr-2 stroke-[1.5]" /> Live Activities</span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-              <Clock className="w-4 h-4 mr-2" /> Pending Approval {pendingCount > 0 && <span className="ml-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{pendingCount}</span>}
+            <TabsTrigger value="pending" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+              {tab === "pending" && (
+                <motion.div layoutId="activities-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center"><Clock className="w-4 h-4 mr-2 stroke-[1.5]" /> Pending Approval {pendingCount > 0 && <span className="ml-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{pendingCount}</span>}</span>
             </TabsTrigger>
           </TabsList>
           
-          {tab === "live" && (
-            <Button onClick={() => { setEditItem(null); setForm({ title:"", description:"", date:"", time:"", location:"", category:"Cultural", hostelName:"Jammu" }); setShowAdd(true); }} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-600/20">
-              <Plus className="w-4 h-4 mr-2" /> Create Activity
-            </Button>
-          )}
-        </div>
+          <div className="flex gap-3 w-full sm:w-auto flex-col sm:flex-row items-center">
+            {tab === "live" && (
+              <>
+                <div className="flex items-center bg-white border border-slate-200/60 rounded-full h-10 overflow-hidden w-full sm:w-auto min-w-[300px]">
+                  <div className="pl-4 pr-2 text-slate-400">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Search activities..." 
+                    className="bg-transparent border-none outline-none flex-1 text-sm h-full w-full min-w-[120px]"
+                  />
+                  <div className="h-6 w-[1px] bg-slate-200/60 mx-1"></div>
+                  <Select value={filterCat} onValueChange={setFilterCat}>
+                    <SelectTrigger className="h-10 px-4 bg-transparent border-none rounded-none focus:ring-0 focus:ring-offset-0 transition-colors w-[150px]">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* Global Filters inside Tab content */}
-        <div className="flex flex-col sm:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm mb-6">
-          <Select value={filterHome} onValueChange={setFilterHome}>
-            <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl">
-              <SelectValue placeholder="All Homes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Homes</SelectItem>
-              {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          
-          {tab === "live" && (
-            <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
+                <Select value={filterHome} onValueChange={setFilterHome}>
+                  <SelectTrigger className="w-full sm:w-auto min-w-[140px] h-10 px-4 bg-white border border-slate-200/60 rounded-full transition-colors font-medium text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Building className="w-4 h-4 text-slate-500" />
+                      <SelectValue placeholder="All Homes" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="all">All Homes</SelectItem>
+                    {HOMES.map(h => <SelectItem key={h} value={h}>{h} Home</SelectItem>)}
+                    <SelectItem value="Outside">Outside</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
 
-          {tab === "pending" && (
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-slate-50 border-slate-200 rounded-xl capitalize">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {["pending", "approved", "rejected"].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
+            {tab === "pending" && (
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-[160px] h-10 px-4 bg-white border border-slate-200/60 rounded-full capitalize transition-colors">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  {["pending", "approved", "rejected"].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+
+            {tab === "live" && (
+              <Button onClick={() => { setEditItem(null); setForm({ title:"", description:"", date:"", time:"", location:"", category:"Cultural", hostelName:"Jammu" }); setShowAdd(true); }} className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-sm">
+                <Plus className="w-4 h-4 mr-2 stroke-[1.5]" /> Create Activity
+              </Button>
+            )}
+          </div>
         </div>
 
         <TabsContent value="live" className="mt-0">
@@ -255,20 +270,22 @@ export default function ActivitiesPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex justify-between items-center gap-2">
                         <Select value={a.status} onValueChange={(v) => updateStatus(a._id, v)}>
-                          <SelectTrigger className="h-8 w-[110px] text-xs bg-white border-slate-200 rounded-lg shadow-sm capitalize"><SelectValue/></SelectTrigger>
-                          <SelectContent>
-                            {["upcoming", "ongoing", "completed", "cancelled"].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                          <SelectTrigger className="h-9 flex-1 min-w-0 px-3 text-xs font-semibold bg-white border-slate-200 rounded-full shadow-sm capitalize">
+                            <SelectValue placeholder="Update Status" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl">
+                            {["OPEN", "upcoming", "ongoing", "completed", "cancelled"].map(s => <SelectItem key={s} value={s} className="capitalize rounded-xl">{s}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
+                        <div className="flex gap-2 shrink-0">
+                          <Button size="sm" className="h-9 px-5 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 rounded-full shadow-sm" onClick={() => {
                             setEditItem(a);
                             setForm({ title:a.title, description:a.description, date:a.date, time:a.time, location:a.location, category:a.category, hostelName:a.hostelName });
                             setShowAdd(true);
                           }}>Edit</Button>
-                          <Button size="sm" variant="ghost" className="h-8 text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => del(a._id, true)}>Delete</Button>
+                          <Button size="sm" className="h-9 px-5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full shadow-sm" onClick={() => del(a._id, true)}>Delete</Button>
                         </div>
                       </div>
                     </Card>
@@ -360,7 +377,7 @@ export default function ActivitiesPage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Event Title *</label>
-                  <Input value={form.title} onChange={e => setForm({...form, title:e.target.value})} placeholder="e.g., Annual Sports Meet" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                  <Input value={form.title} onChange={e => setForm({...form, title:e.target.value})} placeholder="e.g., Annual Sports Meet" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                 </div>
                 
                 <div className="space-y-1.5">
@@ -371,11 +388,11 @@ export default function ActivitiesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Date *</label>
-                    <Input type="date" value={form.date} onChange={e => setForm({...form, date:e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input type="date" value={form.date} onChange={e => setForm({...form, date:e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Time *</label>
-                    <Input type="time" value={form.time} onChange={e => setForm({...form, time:e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                    <Input type="time" value={form.time} onChange={e => setForm({...form, time:e.target.value})} className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                   </div>
                 </div>
 
@@ -383,7 +400,7 @@ export default function ActivitiesPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Category</label>
                     <Select value={form.category} onValueChange={v => setForm({...form, category:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue/></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue/></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
@@ -392,7 +409,7 @@ export default function ActivitiesPage() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Home / Target</label>
                     <Select value={form.hostelName} onValueChange={v => setForm({...form, hostelName:v})}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl"><SelectValue/></SelectTrigger>
+                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-2xl"><SelectValue/></SelectTrigger>
                       <SelectContent>
                         {HOMES.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                       </SelectContent>
@@ -402,12 +419,12 @@ export default function ActivitiesPage() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Location</label>
-                  <Input value={form.location} onChange={e => setForm({...form, location:e.target.value})} placeholder="e.g., Main Ground" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                  <Input value={form.location} onChange={e => setForm({...form, location:e.target.value})} placeholder="e.g., Main Ground" className="h-11 bg-slate-50 border-slate-200 rounded-2xl" />
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-xl h-11 px-6 shadow-sm">Cancel</Button>
-                  <Button onClick={save} disabled={saving} className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20">
+                  <Button onClick={() => setShowAdd(false)} variant="outline" className="rounded-full h-11 px-6 shadow-sm">Cancel</Button>
+                  <Button onClick={save} disabled={saving} className="rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     {saving ? "Saving..." : editItem ? "Update Activity" : "Create Activity"}
                   </Button>
                 </div>

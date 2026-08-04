@@ -197,47 +197,60 @@ export default function HomeRecordsPage() {
       )}
 
       {/* Global Filter */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm inline-block">
+      <div className="mb-6">
         <Select value={selectedHome} onValueChange={setSelectedHome}>
-          <SelectTrigger className="w-[200px] h-10 bg-slate-50 border-slate-200 rounded-xl font-bold text-slate-700">
-            <Building className="w-4 h-4 mr-2" />
-            <SelectValue />
+          <SelectTrigger className="w-auto min-w-[160px] h-11 px-4 bg-white border border-slate-200/60 rounded-full transition-colors font-medium text-slate-700 shadow-sm inline-flex">
+            <div className="flex items-center gap-2">
+              <Building className="w-4 h-4 text-slate-500" />
+              <SelectValue />
+            </div>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-2xl">
             {HOMES.map(h => <SelectItem key={h} value={h}>{h} Home</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-100/80 p-1 rounded-xl w-full sm:w-auto h-auto mb-6">
-          <TabsTrigger value="registers" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-            <BookOpen className="w-4 h-4 mr-2" /> Shared Registers
+        <TabsList className="bg-white border border-slate-200/60 shadow-sm p-1 rounded-full w-full sm:w-auto h-auto mb-6 relative">
+          <TabsTrigger value="registers" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+            {activeTab === "registers" && (
+              <motion.div layoutId="homerecords-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+            )}
+            <span className="relative z-10 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Shared Registers</span>
           </TabsTrigger>
-          <TabsTrigger value="child-files" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-            <FolderOpen className="w-4 h-4 mr-2" /> Child Files
+          <TabsTrigger value="child-files" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+            {activeTab === "child-files" && (
+              <motion.div layoutId="homerecords-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+            )}
+            <span className="relative z-10 flex items-center"><FolderOpen className="w-4 h-4 mr-2" /> Child Files</span>
           </TabsTrigger>
-          <TabsTrigger value="summary" className="rounded-lg px-4 py-2 font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-sm">
-            <Activity className="w-4 h-4 mr-2" /> Compliance Summary
+          <TabsTrigger value="summary" className="rounded-full px-5 py-2 font-medium text-sm relative data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 z-10 transition-colors">
+            {activeTab === "summary" && (
+              <motion.div layoutId="homerecords-tab" className="absolute inset-0 bg-blue-50/50 rounded-full" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+            )}
+            <span className="relative z-10 flex items-center"><Activity className="w-4 h-4 mr-2" /> Compliance Summary</span>
           </TabsTrigger>
         </TabsList>
 
         {(activeTab === "registers" || activeTab === "child-files") && (
           <TabsContent value={activeTab} className="space-y-6 mt-0">
-            <div className="flex flex-col sm:flex-row gap-4 bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
-                  className="pl-9 h-11 bg-slate-50 border-slate-200 rounded-xl w-full"
-                  placeholder="Search registers or files..."
-                  value={search} onChange={e => setSearch(e.target.value)}
-                />
+            <div className="flex items-center bg-white border border-slate-200/60 shadow-sm rounded-full h-11 overflow-hidden w-full sm:w-max min-w-[300px]">
+              <div className="pl-4 pr-2 text-slate-400">
+                <Search className="w-4 h-4" />
               </div>
+              <input 
+                type="text" 
+                placeholder="Search registers or files..." 
+                value={search} onChange={e => setSearch(e.target.value)}
+                className="bg-transparent border-none outline-none flex-1 text-sm h-full w-full min-w-[200px]"
+              />
+              <div className="h-6 w-[1px] bg-slate-200/60 mx-1"></div>
               <Select value={filterCat} onValueChange={setFilterCat}>
-                <SelectTrigger className="w-full sm:w-[220px] h-11 bg-slate-50 border-slate-200 rounded-xl">
+                <SelectTrigger className="h-11 px-4 bg-transparent border-none rounded-none focus:ring-0 focus:ring-offset-0 transition-colors w-[220px]">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl">
                   <SelectItem value="all">All Categories</SelectItem>
                   {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                 </SelectContent>
